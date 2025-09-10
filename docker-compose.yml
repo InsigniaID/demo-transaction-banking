@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  app:
+    image: banking-demo:1.0.0
+    container_name: demo-transaction-banking
+    command: uv run uvicorn main:app --host 0.0.0.0 --port 8919
+    volumes:
+      - .:/app
+    ports:
+      - "8919:8919"
