@@ -332,7 +332,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             if datetime.fromisoformat(a["timestamp"]) > now - timedelta(minutes=30)
         ]
 
-        if len(window) >= 3:
+        if len(window) >= 2:
             alert = {
                 "timestamp": timestamp_str,
                 "log_type": "security_alert",
@@ -358,5 +358,21 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
 
     FAILED_LOGINS[form_data.username] = []
     token = security.create_access_token({"sub": user.username})
+
+    success_event = {
+        "timestamp": timestamp_str,
+        "log_type": "login",
+        "login_status": "success",
+        "customer_id": user.customer_id,
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+        "geolocation": {
+            "country": "Indonesia",
+            "city": "Jakarta",
+            "lat": -6.2088,
+            "lon": 106.8456
+        }
+    }
+    await send_transaction(success_event)
 
     return {"access_token": token, "token_type": "bearer"}
