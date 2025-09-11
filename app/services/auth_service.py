@@ -44,28 +44,40 @@ class AuthService:
             if datetime.fromisoformat(attempt["timestamp"]) > now - timedelta(minutes=30)
         ]
 
-        # Send alert if threshold reached
-        if len(window) >= 2:
-            alert = {
-                "timestamp": timestamp_str,
-                "log_type": "security_alert",
-                "alert_type": "multiple_failed_login",
-                "customer_id": user.customer_id if user else "UNKNOWN",
-                "alert_severity": "high",
-                "failed_attempts": len(window),
-                "time_window_minutes": 30,
-                "login_attempts": [
-                    {
-                        "attempt_number": i + 1,
-                        "timestamp": attempt["timestamp"],
-                        "ip_address": attempt["ip_address"],
-                        "user_agent": attempt["user_agent"],
-                        "failure_reason": attempt["failure_reason"],
-                        "geolocation": attempt["geolocation"]
-                    } for i, attempt in enumerate(window)
-                ]
-            }
-            await send_transaction(alert)
+        # Send alert for every failed attempt (1, 2, 3+)
+        attempt_count = len(window)
+
+        # Determine alert severity based on attempt count
+        if attempt_count == 1:
+            severity = "low"
+            alert_type = "failed_login"
+        elif attempt_count == 2:
+            severity = "medium"
+            alert_type = "repeated_failed_login"
+        else:  # 3+
+            severity = "high"
+            alert_type = "multiple_failed_login"
+
+        alert = {
+            "timestamp": timestamp_str,
+            "log_type": "security_alert",
+            "alert_type": alert_type,
+            "customer_id": user.customer_id if user else "UNKNOWN",
+            "alert_severity": severity,
+            "failed_attempts": attempt_count,
+            "time_window_minutes": 30,
+            "login_attempts": [
+                {
+                    "attempt_number": i + 1,
+                    "timestamp": attempt["timestamp"],
+                    "ip_address": attempt["ip_address"],
+                    "user_agent": attempt["user_agent"],
+                    "failure_reason": attempt["failure_reason"],
+                    "geolocation": attempt["geolocation"]
+                } for i, attempt in enumerate(window)
+            ]
+        }
+        await send_transaction(alert)
 
     async def handle_successful_login(
         self,
