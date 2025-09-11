@@ -3,6 +3,7 @@ from pydantic import BaseModel, validator
 from zoneinfo import ZoneInfo
 from typing import List, Optional, Literal
 from datetime import datetime
+from decimal import Decimal
 
 
 class UserBase(BaseModel):
@@ -22,6 +23,12 @@ class UserResponse(UserBase):
 
     class Config:
         from_attributes = True
+
+
+class RegisterResponse(BaseModel):
+    user: UserResponse
+    message: str
+    default_account_number: str
 
 
 class UserLogin(BaseModel):
@@ -236,7 +243,7 @@ class GenerateQRISRequest(BaseModel):
     currency: str = "IDR"
     merchant_name: str
     merchant_category: str
-    pin: str
+    pin: Optional[str] = None  # PIN not required for generate QRIS
 
 
 class GenerateQRISResponse(BaseModel):
@@ -247,8 +254,6 @@ class GenerateQRISResponse(BaseModel):
 
 class ConsumeQRISRequest(BaseModel):
     qris_code: str
-    customer_id: str
-    account_number: str
     pin: str
 
 
@@ -256,3 +261,51 @@ class ConsumeQRISResponse(BaseModel):
     qris_id: str
     status: str
     message: str
+
+
+# Account and Transaction History Schemas
+class AccountResponse(BaseModel):
+    id: uuid.UUID
+    account_number: str
+    account_type: str
+    balance: Decimal
+    currency: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TransactionHistoryResponse(BaseModel):
+    id: uuid.UUID
+    transaction_id: str
+    transaction_type: str
+    amount: Decimal
+    currency: str
+    balance_before: Decimal
+    balance_after: Decimal
+    status: str
+    description: Optional[str] = None
+    reference_number: Optional[str] = None
+    recipient_account: Optional[str] = None
+    recipient_name: Optional[str] = None
+    channel: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AccountBalanceResponse(BaseModel):
+    account_number: str
+    balance: Decimal
+    currency: str
+    account_type: str
+    status: str
+
+
+class CreateAccountRequest(BaseModel):
+    account_type: Literal["savings", "checking", "corporate"] = "savings"
+    initial_balance: Optional[Decimal] = Decimal("0.00")

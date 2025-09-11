@@ -11,6 +11,9 @@ class PINValidationService:
     @staticmethod
     def validate_pin(user: User, pin: str) -> bool:
         """Validate user PIN."""
+        if not user.hashed_pin:
+            # User doesn't have a PIN set
+            return False
         return verify_pin(pin, user.hashed_pin)
     
     @staticmethod
@@ -44,13 +47,28 @@ class PINValidationService:
         additional_data: Dict[str, Any] = None
     ) -> None:
         """Validate PIN or raise HTTPException and send to Kafka."""
+        if not user.hashed_pin:
+            raise HTTPException(
+                status_code=422, 
+                detail={
+                    "error": "PIN not set",
+                    "message": "User does not have a PIN configured. Please set up a PIN first."
+                }
+            )
+            
         if not PINValidationService.validate_pin(user, pin):
             # Send failure event to Kafka
             await PINValidationService.handle_pin_validation_failure(
                 user, transaction_type, amount, additional_data
             )
             # Raise HTTP exception
-            raise HTTPException(status_code=401, detail="Invalid PIN")
+            raise HTTPException(
+                status_code=401, 
+                detail={
+                    "error": "Invalid PIN",
+                    "message": "The provided PIN is incorrect."
+                }
+            )
 
 
 # Global instance

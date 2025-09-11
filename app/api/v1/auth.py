@@ -4,17 +4,68 @@ from sqlalchemy.orm import Session
 
 from ...api.deps import get_db
 from ...auth import get_current_user
-from ...models import User
-from ...schemas import UserCreate, UserResponse, PINValidationRequest, PINValidationResponse
+from ...models import User, Account
+from ...schemas import UserCreate, UserResponse, RegisterResponse, PINValidationRequest, PINValidationResponse
 from ...security import get_password_hash, get_pin_hash, verify_password, verify_pin, create_access_token
 from ...services.auth_service import auth_service
 
 router = APIRouter()
 
 
-@router.post("/users/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+@router.post("/auth/register", response_model=RegisterResponse)
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     """Create new user account."""
+    existing_user = db.query(User).filter(User.username == user.username).first()
+
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    last_user = db.query(User).order_by(User.created_at.desc()).first()
+
+    if last_user and last_user.customer_id:
+        last_number = int(last_user.customer_id.split("-")[1])
+    else:
+        last_number = 0
+
+    new_customer_id = f"CUST-{last_number+1:06d}"
+    hashed_pw = get_password_hash(user.password)
+    hashed_pin = get_pin_hash(user.pin)
+    db_user = User(
+        username=user.username,
+        hashed_password=hashed_pw,
+        hashed_pin=hashed_pin,
+        customer_id=new_customer_id
+    )
+
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    # Auto-create default savings account
+    default_account = Account(
+        user_id=db_user.id,
+        account_number=f"ACC{new_customer_id.split('-')[1]}001",
+        account_type="savings",
+        balance=0.00,
+        currency="IDR",
+        status="active"
+    )
+    
+    db.add(default_account)
+    db.commit()
+    db.refresh(default_account)
+
+    return RegisterResponse(
+        user=db_user,
+        message="Registration successful! Default savings account created.",
+        default_account_number=default_account.account_number
+    )
+
+
+@router.post("/users/", response_model=UserResponse)
+async def create_user_legacy(user: UserCreate, db: Session = Depends(get_db)):
+    """Legacy endpoint for user creation (backward compatibility)."""
+    # Reuse the registration logic but return only user data
     existing_user = db.query(User).filter(User.username == user.username).first()
 
     if existing_user:

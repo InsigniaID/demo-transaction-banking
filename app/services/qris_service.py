@@ -64,7 +64,7 @@ class QRISService:
             qris_data["status"] = "EXPIRED"
             raise HTTPException(status_code=400, detail="QRIS expired")
 
-        if data.customer_id == qris_data["customer_id"]:
+        if customer_id == qris_data["customer_id"]:
             raise HTTPException(status_code=400, detail="Player cannot be the same as payee")
 
         qris_data["status"] = "CONSUMED"
