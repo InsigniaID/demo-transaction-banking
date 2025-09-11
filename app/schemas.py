@@ -11,6 +11,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    pin: Optional[str] = "123456"
 
 
 class UserResponse(UserBase):
@@ -20,7 +21,7 @@ class UserResponse(UserBase):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserLogin(BaseModel):
@@ -38,6 +39,15 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class PINValidationRequest(BaseModel):
+    pin: str
+
+
+class PINValidationResponse(BaseModel):
+    valid: bool
+    message: str
+
+
 class TransactionCorporateInput(BaseModel):
     account_number: str
     transaction_type: Literal["pos_purchase", "withdrawal", "transfer", "salary_credit", "bill_payment"]
@@ -51,6 +61,14 @@ class TransactionCorporateInput(BaseModel):
     merchant_category: str
     merchant_id: str
     terminal_id: str
+    pin: str
+    
+    # Enhanced fields for real case simulation
+    recipient_account_number: Optional[str] = None
+    recipient_account_name: Optional[str] = None
+    recipient_bank_code: Optional[str] = None
+    transaction_description: Optional[str] = None
+    reference_number: Optional[str] = None
 
 
 class TransactionRetail(BaseModel):
@@ -218,6 +236,7 @@ class GenerateQRISRequest(BaseModel):
     currency: str = "IDR"
     merchant_name: str
     merchant_category: str
+    pin: str
 
 
 class GenerateQRISResponse(BaseModel):
@@ -230,6 +249,7 @@ class ConsumeQRISRequest(BaseModel):
     qris_code: str
     customer_id: str
     account_number: str
+    pin: str
 
 
 class ConsumeQRISResponse(BaseModel):

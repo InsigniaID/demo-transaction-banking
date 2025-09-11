@@ -12,6 +12,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    hashed_pin = Column(String, nullable=False)
     customer_id = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(), default=datetime.now(), nullable=False)
     updated_at = Column(DateTime(), default=datetime.now(),

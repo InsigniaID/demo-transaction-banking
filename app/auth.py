@@ -15,7 +15,7 @@ class OAuth2PasswordRequestFormForSwagger(OAuth2):
         super().__init__(flows=flows, scheme_name="OAuth2Password")
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 def authenticate_user(db: Session, username: str, password: str, request: Request):
@@ -42,7 +42,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
                                           headers={"WWW-Authenticate": "Bearer"})
 
     try:
-        payload = jwt.decode(token, security.SECRET_KEY, algorithms=[security.ALGORITHM])
+        payload = jwt.decode(token, security.settings.secret_key, algorithms=[security.settings.algorithm])
         print(f"Decoded payload: {payload}")
         username: str = payload.get("sub")
         print(f"Username from token: {username}")
