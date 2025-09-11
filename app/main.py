@@ -3,17 +3,24 @@ import json
 import uuid
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, security, Request, Body
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 from . import schemas, database, models, security
 from .auth import get_current_user
 from .kafka_producer import init_kafka, shutdown_kafka, send_transaction
 from .models import User
-from .schemas import TransactionCorporateInput, ConsumeQRISRequest, ConsumeQRISResponse, GenerateQRISRequest, \
-    GenerateQRISResponse
+from .schemas import (TransactionCorporateInput, ConsumeQRISRequest, ConsumeQRISResponse,
+                      GenerateQRISRequest, GenerateQRISResponse)
 
 database.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
+
+app.add_middleware(CORSMiddleware,
+                   allow_origins=["*"],
+                   allow_credentials=True,
+                   allow_methods=["*"],
+                   allow_headers=["*"])
 FAILED_LOGINS = {}
 QRIS_STORAGE = {}
 
@@ -27,10 +34,12 @@ def get_db():
     finally:
         db.close()
 
+
 def encode_qris_payload(payload: dict) -> str:
     raw = json.dumps(payload).encode("utf-8")
 
     return base64.urlsafe_b64encode(raw).decode("utf-8")
+
 
 def decode_qris_payload(qris_code: str) -> dict:
     try:
@@ -99,19 +108,13 @@ async def create_retail_transaction_gen(data: GenerateQRISRequest = Body(...),
         "status": "ACTIVE",
     }
 
-    return  GenerateQRISResponse(qris_id=qris_id,
-                                 qris_code=qris_code,
-                                 expired_at=expired_at)
-
-    print(current_user.customer_id)
-    tx_dict = tx.model_dump(mode="json")
-    await send_transaction(tx_dict)
-
-    return {"status": "success", "transaction": tx_dict}
+    return GenerateQRISResponse(qris_id=qris_id,
+                                qris_code=qris_code,
+                                expired_at=expired_at)
 
 
 @app.post("/transaction/retail/qris-consume")
-async def create_retail_transaction_consume(data: ConsumeQRISRequest = Body(...),
+async def create_retail_transaction_consume(request: Request, data: ConsumeQRISRequest = Body(...),
                                             current_user: User = Depends(get_current_user)):
     # customer_id, account_number, transaction_type, amount, currency, channel, branch_code, province, city
     # merchant_name, merchant_category
@@ -136,6 +139,14 @@ async def create_retail_transaction_consume(data: ConsumeQRISRequest = Body(...)
     qris_data["status"] = "CONSUMED"
 
     now = datetime.utcnow()
+    device_id = request.headers.get("X-Device-ID")
+    device_type = request.headers.get("X-Device-Type")
+    device_os = request.headers.get("X-Device-OS")
+    device_browser = request.headers.get("X-Device-Browser")
+    device_is_trusted = request.headers.get("X-Device-Trusted") == "true"
+    ip_address = request.client.host
+    user_agent = request.headers.get("user-agent")
+    session_id = request.headers.get("X-Session-ID")
 
     tx_dict = {
         "timestamp": now.isoformat(),
@@ -169,14 +180,14 @@ async def create_retail_transaction_consume(data: ConsumeQRISRequest = Body(...)
         "customer_kyc_level": "basic",
         "customer_pep_status": False,
         "customer_previous_fraud_incidents": 0,
-        "device_id": "dev_mobile_abc123",
-        "device_type": "mobile",
-        "device_os": "Android 14",
-        "device_browser": "Chrome 120",
-        "device_is_trusted": True,
-        "ip_address": "192.168.1.100",
-        "user_agent": "Mozilla/5.0 (Android 14; Mobile)",
-        "session_id": f"sess_{uuid.uuid4().hex[:8]}",
+        "device_id": device_id,
+        "device_type": device_type,
+        "device_os": device_os,
+        "device_browser": device_browser,
+        "device_is_trusted": device_is_trusted,
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+        "session_id": session_id,
         "merchant_name": qris_data["merchant_name"],
         "merchant_category": qris_data["merchant_category"],
         "merchant_id": "MID12345678",
@@ -188,11 +199,6 @@ async def create_retail_transaction_consume(data: ConsumeQRISRequest = Body(...)
     return ConsumeQRISResponse(qris_id=qris_id,
                               status="SUCCESS",
                                message=f"Payment of {qris_data['amount']} {qris_data['currency']} to {qris_data['merchant_name']} completed.")
-    # print(current_user.customer_id)
-    # tx_dict = tx.model_dump(mode="json")
-    # await send_transaction(tx_dict)
-    #
-    # return {"status": "success", "transaction": tx_dict}
 
 
 @app.post("/transaction/corporate")
