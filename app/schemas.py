@@ -1,34 +1,34 @@
-from pydantic import BaseModel
-
+import uuid
+from pydantic import BaseModel, validator
+from zoneinfo import ZoneInfo
 from typing import List, Optional
 from datetime import datetime
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.dialects.postgresql import UUID
-from app.database import Base
+
+JAKARTA_TZ = ZoneInfo("Asia/Jakarta")
 
 
-class User(Base):
-    __tablename__ = "users"
-    __table_args__ = {"extend_existing": True}
-
-    id = Column(UUID, unique=True, primary_key=True, index=True)
-    username = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
-
-
-class UserCreate(BaseModel):
+class UserBase(BaseModel):
     username: str
+
+
+class UserCreate(UserBase):
     password: str
-    createdAt: datetime
-    updatedAt: datetime
 
 
-class UserResponse(BaseModel):
-    id: int
-    username: str
+class UserResponse(UserBase):
+    id: uuid.UUID
+    customer_id: str
+    created_at: datetime
+    updated_at: datetime
 
     class Config:
         orm_mode = True
+
+    @validator("created_at", "updated_at", pre=True)
+    def convert_to_jakarta(cls, value: datetime) -> datetime:
+        if value and value.tzinfo:
+            return value.astimezone(JAKARTA_TZ)
+        return value
 
 
 class UserLogin(BaseModel):

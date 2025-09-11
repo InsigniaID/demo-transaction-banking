@@ -24,7 +24,7 @@ async def shutdown_kafka():
         await producer.stop()
         producer = None
 
-async def send_transaction(data: dict):
+async def send_transaction(data: dict, local_kw=None):
     if not producer:
         raise RuntimeError("Kafka producer not initialized")
 
