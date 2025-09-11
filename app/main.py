@@ -1,6 +1,7 @@
+import base64
+import json
 import uuid
 from datetime import datetime, timedelta
-
 from fastapi import FastAPI, Depends, HTTPException, security, Request, Body
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
@@ -8,11 +9,13 @@ from . import schemas, database, models, security
 from .auth import get_current_user
 from .kafka_producer import init_kafka, shutdown_kafka, send_transaction
 from .models import User
-from .schemas import TransactionCorporateInput
+from .schemas import TransactionCorporateInput, ConsumeQRISRequest, ConsumeQRISResponse, GenerateQRISRequest, \
+    GenerateQRISResponse
 
 database.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
 FAILED_LOGINS = {}
+QRIS_STORAGE = {}
 
 
 def get_db():
@@ -23,6 +26,19 @@ def get_db():
 
     finally:
         db.close()
+
+def encode_qris_payload(payload: dict) -> str:
+    raw = json.dumps(payload).encode("utf-8")
+
+    return base64.urlsafe_b64encode(raw).decode("utf-8")
+
+def decode_qris_payload(qris_code: str) -> dict:
+    try:
+        raw = base64.urlsafe_b64decode(qris_code.encode("utf-8"))
+        return json.loads(raw.decode("utf-8"))
+
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid QRIS code")
 
 
 @app.on_event("startup")
@@ -52,16 +68,131 @@ def root():
     return {"message": "API is running"}
 
 
-@app.post("/transaction/retail")
-async def create_retail_transaction(tx: schemas.TransactionRetail = Body(...),
-                                    current_user: User = Depends(get_current_user)):
+@app.post("/transaction/retail/qris-generate")
+async def create_retail_transaction_gen(data: GenerateQRISRequest = Body(...),
+                                        current_user: User = Depends(get_current_user)):
     # customer_id, account_number, transaction_type, amount, currency, channel, branch_code, province, city
     # merchant_name, merchant_category
+    qris_id = str(uuid.uuid4())
+    expired_at = datetime.utcnow() + timedelta(minutes=15)
+
+    payload = {
+        "qris_id": qris_id,
+        "merchant_name": data.merchant_name,
+        "merchant_category": data.merchant_category,
+        "amount": data.amount,
+        "currency": data.currency,
+        "expired_at": expired_at.isoformat()
+    }
+
+    qris_code = encode_qris_payload(payload)
+
+    QRIS_STORAGE[qris_id] = {
+        "qris_code": qris_code,
+        "customer_id": current_user.customer_id,
+        "account_number": data.account_number,
+        "amount": data.amount,
+        "currency": data.currency,
+        "merchant_name": data.merchant_name,
+        "merchant_category": data.merchant_category,
+        "expired_at": expired_at,
+        "status": "ACTIVE",
+    }
+
+    return  GenerateQRISResponse(qris_id=qris_id,
+                                 qris_code=qris_code,
+                                 expired_at=expired_at)
+
     print(current_user.customer_id)
     tx_dict = tx.model_dump(mode="json")
     await send_transaction(tx_dict)
 
     return {"status": "success", "transaction": tx_dict}
+
+
+@app.post("/transaction/retail/qris-consume")
+async def create_retail_transaction_consume(data: ConsumeQRISRequest = Body(...),
+                                            current_user: User = Depends(get_current_user)):
+    # customer_id, account_number, transaction_type, amount, currency, channel, branch_code, province, city
+    # merchant_name, merchant_category
+    decoded = decode_qris_payload(data.qris_code)
+    qris_id = decoded.get("qris_id")
+    qris_data = QRIS_STORAGE.get(qris_id)
+
+    if not qris_data:
+        raise HTTPException(status_code=404, detail="QRIS not found")
+
+    if qris_data["status"] != "ACTIVE":
+        raise HTTPException(status_code=400, detail="Invalid QRIS code")
+
+    if datetime.utcnow() > qris_data["expired_at"]:
+        qris_data["status"] = "EXPIRED"
+
+        raise HTTPException(status_code=400, detail="QRIS expired")
+
+    if data.customer_id == qris_data["customer_id"]:
+        raise HTTPException(status_code=400, detail="Player cannot be the same as payee")
+
+    qris_data["status"] = "CONSUMED"
+
+    now = datetime.utcnow()
+
+    tx_dict = {
+        "timestamp": now.isoformat(),
+        "log_type": "transaction",
+        "transaction_id": f"txn_{uuid.uuid4().hex[:12]}",
+        "customer_id": current_user.customer_id,
+        "account_number": data.account_number,
+        "customer_segment": "retail",
+        "transaction_type": "pos_purchase",
+        "amount": qris_data["amount"],
+        "currency": qris_data["currency"],
+        "channel": "mobile_app",
+        "status": "success",
+        "branch_code": "BR-0001",
+        "province": "DKI Jakarta",
+        "city": "Jakarta Selatan",
+        "latitude": -6.261493,
+        "longitude": 106.810600,
+        "processing_time_ms": 1250,
+        "business_date": now.date().isoformat(),
+        "customer_age": 28,
+        "customer_gender": "F",
+        "customer_occupation": "karyawan",
+        "customer_income_bracket": "5-10jt",
+        "customer_education": "S1",
+        "customer_marital_status": "married",
+        "customer_monthly_income": 7500000.0,
+        "customer_credit_limit": 22500000.0,
+        "customer_savings_balance": 45000000.0,
+        "customer_risk_score": 0.25,
+        "customer_kyc_level": "basic",
+        "customer_pep_status": False,
+        "customer_previous_fraud_incidents": 0,
+        "device_id": "dev_mobile_abc123",
+        "device_type": "mobile",
+        "device_os": "Android 14",
+        "device_browser": "Chrome 120",
+        "device_is_trusted": True,
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0 (Android 14; Mobile)",
+        "session_id": f"sess_{uuid.uuid4().hex[:8]}",
+        "merchant_name": qris_data["merchant_name"],
+        "merchant_category": qris_data["merchant_category"],
+        "merchant_id": "MID12345678",
+        "terminal_id": "TID123456",
+    }
+
+    await send_transaction(tx_dict)
+
+    return ConsumeQRISResponse(qris_id=qris_id,
+                              status="SUCCESS",
+                               message=f"Payment of {qris_data['amount']} {qris_data['currency']} to {qris_data['merchant_name']} completed.")
+    # print(current_user.customer_id)
+    # tx_dict = tx.model_dump(mode="json")
+    # await send_transaction(tx_dict)
+    #
+    # return {"status": "success", "transaction": tx_dict}
 
 
 @app.post("/transaction/corporate")
@@ -72,7 +203,6 @@ async def create_corporate_transaction(request: Request,
     latitude = request.headers.get("X-Device-Lat")
     longitude = request.headers.get("X-Device-Lon")
     start_time = datetime.utcnow()
-    # ... logic send_transaction ...
     end_time = datetime.utcnow()
     processing_time_ms = int((end_time - start_time).total_seconds() * 1000)
     device_id = request.headers.get("X-Device-ID")

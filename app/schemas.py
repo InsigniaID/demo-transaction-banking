@@ -211,3 +211,28 @@ class AlertScenarioMultipleFailedLogin(BaseModel):
     failed_attempts: int
     time_window_minutes: int
     login_attempts: List[LoginAttempt]
+
+class GenerateQRISRequest(BaseModel):
+    account_number: str
+    amount: float
+    currency: str = "IDR"
+    merchant_name: str
+    merchant_category: str
+
+
+class GenerateQRISResponse(BaseModel):
+    qris_id: str
+    qris_code: str
+    expired_at: datetime
+
+
+class ConsumeQRISRequest(BaseModel):
+    qris_code: str
+    customer_id: str
+    account_number: str
+
+
+class ConsumeQRISResponse(BaseModel):
+    qris_id: str
+    status: str
+    message: str
