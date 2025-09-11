@@ -5,8 +5,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Column, Integer, String, DateTime, func
 from .database import Base
 
-JAKARTA_TZ = ZoneInfo("Asia/Jakarta")
-
 
 class User(Base):
     __tablename__ = "users"

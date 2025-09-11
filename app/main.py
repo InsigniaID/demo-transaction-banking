@@ -1,13 +1,14 @@
+import uuid
 from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Depends, HTTPException, security, Request, Body
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from fastapi.security import OAuth2PasswordRequestForm
-from . import schemas, database, models, auth, security
+from . import schemas, database, models, security
 from .auth import get_current_user
 from .kafka_producer import init_kafka, shutdown_kafka, send_transaction
 from .models import User
+from .schemas import TransactionCorporateInput
 
 database.Base.metadata.create_all(bind=database.engine)
 app = FastAPI()
@@ -39,7 +40,6 @@ async def debug_openapi():
     import json
     openapi_schema = app.openapi()
 
-    # Print semua paths dan parameters
     for path, methods in openapi_schema.get("paths", {}).items():
         for method, details in methods.items():
             if "parameters" in details:
@@ -53,21 +53,88 @@ def root():
 
 
 @app.post("/transaction/retail")
-async def create_retail_transaction(
-    tx: schemas.TransactionRetail = Body(...),
-    current_user: User = Depends(get_current_user)
-):
+async def create_retail_transaction(tx: schemas.TransactionRetail = Body(...),
+                                    current_user: User = Depends(get_current_user)):
+    # customer_id, account_number, transaction_type, amount, currency, channel, branch_code, province, city
+    # merchant_name, merchant_category
+    print(current_user.customer_id)
+    tx_dict = tx.model_dump(mode="json")
+    await send_transaction(tx_dict)
+
+    return {"status": "success", "transaction": tx_dict}
+
+
+@app.post("/transaction/corporate")
+async def create_corporate_transaction(request: Request,
+                                       tx: TransactionCorporateInput = Body(...),
+                                       current_user: User = Depends(get_current_user)):
+    tx_dict = tx.model_dump()
+    latitude = request.headers.get("X-Device-Lat")
+    longitude = request.headers.get("X-Device-Lon")
+    start_time = datetime.utcnow()
+    # ... logic send_transaction ...
+    end_time = datetime.utcnow()
+    processing_time_ms = int((end_time - start_time).total_seconds() * 1000)
+    device_id = request.headers.get("X-Device-ID")
+    device_type = request.headers.get("X-Device-Type")
+    device_os = request.headers.get("X-Device-OS")
+    device_browser = request.headers.get("X-Device-Browser")
+    device_is_trusted = request.headers.get("X-Device-Trusted") == "true"
+    ip_address = request.client.host
+    user_agent = request.headers.get("user-agent")
+    session_id = request.headers.get("X-Session-ID")
+
+    tx_dict.update({
+        "customer_id": current_user.customer_id,
+        "timestamp": datetime.utcnow().isoformat(),
+        "transaction_id": str(uuid.uuid4()),
+        "log_type": "transaction",
+        "customer_segment": "corporate",
+        "status": "success",
+        "latitude": latitude,
+        "longitude": longitude,
+        "processing_time_ms": processing_time_ms,
+        "business_date": datetime.utcnow().date().isoformat(),
+        "device_id": device_id,
+        "device_type": device_type,
+        "device_os": device_os,
+        "device_browser": device_browser,
+        "device_is_trusted": device_is_trusted,
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+        "session_id": session_id,
+    })
+
+    await send_transaction(tx_dict)
+
+    return {"status": "success", "transaction": tx_dict}
+
+
+@app.post("/velocity-violation")
+async def create_velocity_violation(tx: schemas.FraudDataLegitimate = Body(...),
+                                 current_user: User = Depends(get_current_user)):
+    # customer_id, time_window_hours, transaction_count, total_amount,
+    # transaction (transaction_id, timestamp, amount, recipient, channel(dropdown: mobile_app, web, atm))
     print(current_user.customer_id)
     tx_dict = tx.model_dump(mode="json")
     await send_transaction(tx_dict)
     return {"status": "success", "transaction": tx_dict}
 
 
-@app.post("/transaction/legitimate")
-async def create_data_legitimate(
-    tx: schemas.FraudDataLegitimate = Body(...),
-    current_user: User = Depends(get_current_user)
-):
+@app.post("/compliance-violation/aml-reporting")
+async def create_velocity_violation(tx: schemas.FraudDataLegitimate = Body(...),
+                                 current_user: User = Depends(get_current_user)):
+
+    print(current_user.customer_id)
+    tx_dict = tx.model_dump(mode="json")
+    await send_transaction(tx_dict)
+    return {"status": "success", "transaction": tx_dict}
+
+
+@app.post("/compliance-violation/kyc-gap")
+async def create_velocity_violation(tx: schemas.FraudDataLegitimate = Body(...),
+                                 current_user: User = Depends(get_current_user)):
+
     print(current_user.customer_id)
     tx_dict = tx.model_dump(mode="json")
     await send_transaction(tx_dict)

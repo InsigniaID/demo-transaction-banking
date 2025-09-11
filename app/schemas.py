@@ -1,10 +1,8 @@
 import uuid
 from pydantic import BaseModel, validator
 from zoneinfo import ZoneInfo
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime
-
-JAKARTA_TZ = ZoneInfo("Asia/Jakarta")
 
 
 class UserBase(BaseModel):
@@ -24,12 +22,6 @@ class UserResponse(UserBase):
     class Config:
         orm_mode = True
 
-    @validator("created_at", "updated_at", pre=True)
-    def convert_to_jakarta(cls, value: datetime) -> datetime:
-        if value and value.tzinfo:
-            return value.astimezone(JAKARTA_TZ)
-        return value
-
 
 class UserLogin(BaseModel):
     username: str
@@ -44,6 +36,21 @@ class TokenResponse(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class TransactionCorporateInput(BaseModel):
+    account_number: str
+    transaction_type: Literal["pos_purchase", "withdrawal", "transfer", "salary_credit", "bill_payment"]
+    amount: float
+    currency: str
+    channel: Literal["mobile_app", "web", "atm"]
+    branch_code: str
+    province: str
+    city: str
+    merchant_name: str
+    merchant_category: str
+    merchant_id: str
+    terminal_id: str
 
 
 class TransactionRetail(BaseModel):
