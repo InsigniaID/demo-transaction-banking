@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ...api.deps import get_db
 from ...auth import get_current_user
 from ...models import User, Account
-from ...schemas import UserCreate, UserResponse, RegisterResponse, PINValidationRequest, PINValidationResponse
+from ...schemas import UserCreate, UserResponse, UserWithAccountsResponse, RegisterResponse, PINValidationRequest, PINValidationResponse
 from ...security import get_password_hash, get_pin_hash, verify_password, verify_pin, create_access_token
 from ...services.auth_service import auth_service
 
@@ -120,10 +120,92 @@ async def login(
     return {"access_token": token, "token_type": "bearer"}
 
 
-@router.get("/auth/me", response_model=UserResponse)
-def get_current_user_profile(current_user: User = Depends(get_current_user)):
-    """Get current authenticated user information."""
-    return current_user
+@router.get("/auth/me", response_model=UserWithAccountsResponse)
+def get_current_user_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current authenticated user information with accounts."""
+    # Get user's accounts
+    accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
+    
+    # Create response with accounts
+    return UserWithAccountsResponse(
+        id=current_user.id,
+        username=current_user.username,
+        customer_id=current_user.customer_id,
+        created_at=current_user.created_at,
+        updated_at=current_user.updated_at,
+        accounts=accounts
+    )
+
+
+@router.get("/auth/accounts")
+def get_current_user_accounts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's accounts."""
+    accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
+    
+    return {
+        "user_id": current_user.id,
+        "customer_id": current_user.customer_id,
+        "username": current_user.username,
+        "accounts": [
+            {
+                "id": str(acc.id),
+                "account_number": acc.account_number,
+                "account_type": acc.account_type,
+                "balance": float(acc.balance),
+                "currency": acc.currency,
+                "status": acc.status
+            }
+            for acc in accounts
+        ]
+    }
+
+
+@router.post("/auth/create-default-account")
+def create_default_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create default account for user if they don't have any."""
+    existing_accounts = db.query(Account).filter(Account.user_id == current_user.id).count()
+    
+    if existing_accounts > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="User already has accounts"
+        )
+    
+    # Create default savings account
+    account_number = f"ACC{current_user.customer_id.split('-')[1]}001"
+    default_account = Account(
+        user_id=current_user.id,
+        account_number=account_number,
+        account_type="savings",
+        balance=0.00,
+        currency="IDR",
+        status="active"
+    )
+    
+    db.add(default_account)
+    db.commit()
+    db.refresh(default_account)
+    
+    return {
+        "message": "Default account created successfully",
+        "account": {
+            "id": str(default_account.id),
+            "account_number": default_account.account_number,
+            "account_type": default_account.account_type,
+            "balance": float(default_account.balance),
+            "currency": default_account.currency,
+            "status": default_account.status
+        }
+    }
 
 
 @router.post("/auth/validate-pin", response_model=PINValidationResponse)

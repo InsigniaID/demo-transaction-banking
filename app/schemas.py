@@ -25,6 +25,17 @@ class UserResponse(UserBase):
         from_attributes = True
 
 
+class UserWithAccountsResponse(UserBase):
+    id: uuid.UUID
+    customer_id: str
+    created_at: datetime
+    updated_at: datetime
+    accounts: List['AccountResponse']
+
+    class Config:
+        from_attributes = True
+
+
 class RegisterResponse(BaseModel):
     user: UserResponse
     message: str

@@ -12,6 +12,7 @@ help:
 	@echo "  migrate-up   - Run database migrations"
 	@echo "  migrate-down - Rollback last migration"
 	@echo "  migrate-create - Create new migration (use: make migrate-create MSG='description')"
+	@echo "  seed-accounts - Create default accounts for existing users"
 	@echo "  clean        - Clean up cache and temporary files"
 	@echo "  help         - Show this help message"
 
@@ -57,6 +58,11 @@ migrate-down:
 migrate-create:
 	@echo "Creating new migration: $(MSG)"
 	uv run alembic revision --autogenerate -m "$(MSG)"
+
+# Database seeding commands
+seed-accounts:
+	@echo "Seeding default accounts for existing users..."
+	uv run python seed_accounts.py
 
 # Clean up
 clean:

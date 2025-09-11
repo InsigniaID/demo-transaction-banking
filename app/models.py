@@ -76,3 +76,20 @@ class TransactionHistory(Base):
     # Relationships
     user = relationship("User", back_populates="transaction_histories")
     account = relationship("Account")
+
+
+class QRISTransaction(Base):
+    __tablename__ = "qris_transactions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    qris_id = Column(String, unique=True, index=True, nullable=False)
+    customer_id = Column(String, nullable=False)
+    account_number = Column(String, nullable=False)
+    amount = Column(Numeric(15, 2), nullable=False)
+    currency = Column(String, default="IDR", nullable=False)
+    merchant_name = Column(String, nullable=False)
+    merchant_category = Column(String, nullable=False)
+    qris_code = Column(Text, nullable=False)
+    status = Column(String, default="ACTIVE", nullable=False)  # ACTIVE, CONSUMED, EXPIRED
+    expired_at = Column(DateTime(), nullable=False)
+    created_at = Column(DateTime(), default=datetime.now(), nullable=False)
