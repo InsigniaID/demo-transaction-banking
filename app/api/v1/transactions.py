@@ -9,6 +9,7 @@ from ...schemas import (
     ConsumeQRISRequest, ConsumeQRISResponse,
     TransactionCorporateInput, FraudDataLegitimate
 )
+from ...services import transaction_recording_service
 from ...services.qris_service import QRISService
 from ...services.transaction_service import TransactionService
 from ...services.enhanced_transaction_service import EnhancedTransactionService
@@ -67,30 +68,31 @@ async def create_retail_transaction_gen(
 
 @router.post("/retail/qris-consume", response_model=ConsumeQRISResponse)
 async def create_retail_transaction_consume(
-    data: ConsumeQRISRequest = Body(...),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        data: ConsumeQRISRequest = Body(...),
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
-    """Consume QRIS code for retail transaction."""
+    """Consume QRIS code for retail transaction with proper transaction recording."""
     try:
         print(f"QRIS Consume - User: {current_user.username}, Customer ID: {current_user.customer_id}")
         print(f"QRIS Consume - Request data: qris_code={data.qris_code[:20]}..., pin=***")
-        
+
         # Get user's default account (first active account)
         print(f"QRIS Consume - Looking for accounts for user ID: {current_user.id}")
-        
+
         all_user_accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
         print(f"QRIS Consume - All user accounts: {[acc.account_number for acc in all_user_accounts]}")
-        
+
         user_account = db.query(Account).filter(
             Account.user_id == current_user.id,
             Account.status == "active"
         ).first()
-        
+
         print(f"QRIS Consume - Active account found: {user_account.account_number if user_account else 'None'}")
         if user_account:
-            print(f"QRIS Consume - Account details: {user_account.account_number}, Status: {user_account.status}, Balance: {user_account.balance}")
-        
+            print(
+                f"QRIS Consume - Account details: {user_account.account_number}, Status: {user_account.status}, Balance: {user_account.balance}")
+
         if not user_account:
             print("QRIS Consume - No active account found")
             raise HTTPException(
@@ -100,11 +102,20 @@ async def create_retail_transaction_consume(
                     "message": "User does not have any active accounts to process payment."
                 }
             )
-        
+
         print(f"QRIS Consume - Validating QRIS...")
         qris_data, qris_id = QRISService.validate_and_consume_qris(data, current_user.customer_id, db)
         print(f"QRIS Consume - QRIS validated, ID: {qris_id}")
-        
+
+        # Prepare additional data for validation and recording
+        additional_data = {
+            "qris_id": qris_id,
+            "merchant_name": qris_data["merchant_name"],
+            "merchant_category": qris_data["merchant_category"],
+            "reference_number": qris_id,
+            "recipient_name": qris_data["merchant_name"]
+        }
+
         # Validate transaction (balance, limits, etc.)
         print(f"QRIS Consume - Validating transaction amount: {qris_data['amount']}")
         await transaction_validation_service.validate_transaction(
@@ -113,22 +124,20 @@ async def create_retail_transaction_consume(
             amount=qris_data["amount"],
             transaction_type="qris_consume",
             db=db,
-            additional_data={
-                "qris_id": qris_id,
-                "merchant_name": qris_data["merchant_name"],
-                "merchant_category": qris_data["merchant_category"]
-            }
+            additional_data=additional_data
         )
         print("QRIS Consume - Transaction validation passed")
-        
+
         # Validate PIN after transaction validation
         await pin_validation_service.validate_pin_or_fail(
-            current_user, 
-            data.pin, 
+            current_user,
+            data.pin,
             "qris_consume",
             qris_data["amount"],
-            {"account_number": user_account.account_number, "qris_id": qris_id, "merchant_name": qris_data["merchant_name"]}
+            {"account_number": user_account.account_number, "qris_id": qris_id,
+             "merchant_name": qris_data["merchant_name"]}
         )
+
         
         # Update account balance and create transaction history
         balance_before = user_account.balance
@@ -161,24 +170,66 @@ async def create_retail_transaction_consume(
         transaction_data = await EnhancedTransactionService.create_enhanced_retail_transaction_data(
             qris_data, current_user.customer_id, user_account.account_number
         )
-        
+
+        # Add transaction_id from our database record
+        transaction_data["db_transaction_id"] = transaction_result["transaction_id"]
+        transaction_data["balance_after"] = transaction_result["balance_after"]
+        transaction_data["qris_status"] = "CONSUMED"
+
+        # Send to Kafka for additional processing (notifications, analytics, etc.)
         await EnhancedTransactionService.send_transaction_to_kafka(transaction_data)
-        
+        print("QRIS Consume - Transaction sent to Kafka")
+
         return ConsumeQRISResponse(
             qris_id=qris_id,
             status="SUCCESS",
-            message=f"Payment of {qris_data['amount']} {qris_data['currency']} to {qris_data['merchant_name']} completed from account {user_account.account_number}."
+            message=f"Payment of {qris_data['amount']} {qris_data['currency']} to {qris_data['merchant_name']} completed from account {user_account.account_number}.",
+            transaction_id=transaction_result["transaction_id"],  # Return our transaction ID
+            balance_after=transaction_result["balance_after"]
         )
-    
+
     except HTTPException as e:
-        # Re-raise HTTPExceptions as they are already properly formatted
+        # Record failed transaction for audit (don't raise if this fails)
+        try:
+            if 'user_account' in locals() and 'qris_data' in locals():
+                await transaction_recording_service.record_failed_transaction(
+                    user=current_user,
+                    account=user_account,
+                    amount=qris_data["amount"],
+                    transaction_type="qris_consume",
+                    failure_reason=str(e.detail),
+                    db=db,
+                    additional_data=additional_data if 'additional_data' in locals() else {}
+                )
+                db.commit()  # Commit the failed transaction record
+        except Exception as record_error:
+            print(f"Failed to record failed transaction: {record_error}")
+
+        # Re-raise the original HTTPException
         raise e
     except Exception as e:
+        # Record failed transaction for unexpected errors
+        try:
+            if 'user_account' in locals():
+                amount = qris_data["amount"] if 'qris_data' in locals() else Decimal("0")
+                await transaction_recording_service.record_failed_transaction(
+                    user=current_user,
+                    account=user_account,
+                    amount=amount,
+                    transaction_type="qris_consume",
+                    failure_reason=f"System error: {str(e)}",
+                    db=db,
+                    additional_data=additional_data if 'additional_data' in locals() else {}
+                )
+                db.commit()
+        except Exception as record_error:
+            print(f"Failed to record failed transaction: {record_error}")
+
         # Catch any other unexpected errors and provide detailed info
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail={
-                "error": "Failed to consume QRIS", 
+                "error": "Failed to consume QRIS",
                 "message": str(e),
                 "error_type": type(e).__name__
             }
@@ -187,20 +238,23 @@ async def create_retail_transaction_consume(
 
 @router.post("/corporate")
 async def create_corporate_transaction(
-    request: Request,
-    tx: TransactionCorporateInput = Body(...),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        request: Request,
+        tx: TransactionCorporateInput = Body(...),
+        current_user: User = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """Process corporate transaction."""
+    validation_stage = None
+
     try:
-        # Get user's account for the specified account number
+        # Stage 1: Account validation
+        validation_stage = "account_validation"
         user_account = db.query(Account).filter(
             Account.user_id == current_user.id,
             Account.account_number == tx.account_number,
             Account.status == "active"
         ).first()
-        
+
         if not user_account:
             raise HTTPException(
                 status_code=400,
@@ -209,8 +263,9 @@ async def create_corporate_transaction(
                     "message": f"Active account {tx.account_number} not found for current user"
                 }
             )
-        
-        # Validate transaction (balance, limits, etc.)
+
+        # Stage 2: Transaction validation
+        validation_stage = "transaction_validation"
         await transaction_validation_service.validate_transaction(
             user=current_user,
             account=user_account,
@@ -224,41 +279,77 @@ async def create_corporate_transaction(
                 "recipient_account": tx.recipient_account_number
             }
         )
-        
-        # Validate PIN after transaction validation
+
+        # Stage 3: PIN validation
+        validation_stage = "pin_validation"
         await pin_validation_service.validate_pin_or_fail(
-            current_user, 
-            tx.pin, 
+            current_user,
+            tx.pin,
             "corporate_transaction",
             tx.amount,
             {
-                "account_number": tx.account_number, 
+                "account_number": tx.account_number,
                 "transaction_type": tx.transaction_type,
                 "merchant_name": tx.merchant_name
             }
         )
-        
+
+        # Stage 4: Transaction processing
+        validation_stage = "transaction_processing"
         tx_dict = tx.model_dump()
-        
+
         transaction_data = await EnhancedTransactionService.create_enhanced_corporate_transaction_data(
             tx_dict, current_user.customer_id, dict(request.headers), request.client.host
         )
-        
+
         await EnhancedTransactionService.send_transaction_to_kafka(transaction_data)
-        
+
         return {"status": "success", "transaction": transaction_data}
-    
-    except HTTPException as e:
-        # Re-raise HTTPExceptions as they are already properly formatted
-        raise e
-    except Exception as e:
-        # Catch any other unexpected errors and provide detailed info
+
+    except HTTPException as http_exc:
+        # Send HTTP error to Kafka
+        error_data = await EnhancedTransactionService.create_error_transaction_data(
+            error_type="http_error",
+            error_code=http_exc.status_code,
+            error_detail=http_exc.detail,
+            transaction_input=tx.model_dump(),
+            customer_id=current_user.customer_id,
+            request_headers=dict(request.headers),
+            client_host=request.client.host,
+            validation_stage=validation_stage
+        )
+
+        await EnhancedTransactionService.send_error_to_kafka(error_data)
+
+        # Re-raise the original exception
+        raise http_exc
+
+    except Exception as exc:
+        # Send system error to Kafka
+        error_data = await EnhancedTransactionService.create_error_transaction_data(
+            error_type="system_error",
+            error_code=500,
+            error_detail={
+                "error": "Failed to process corporate transaction",
+                "message": str(exc),
+                "error_type": type(exc).__name__
+            },
+            transaction_input=tx.model_dump(),
+            customer_id=current_user.customer_id,
+            request_headers=dict(request.headers),
+            client_host=request.client.host,
+            validation_stage=validation_stage
+        )
+
+        await EnhancedTransactionService.send_error_to_kafka(error_data)
+
+        # Raise HTTP exception for client
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail={
-                "error": "Failed to process corporate transaction", 
-                "message": str(e),
-                "error_type": type(e).__name__
+                "error": "Failed to process corporate transaction",
+                "message": str(exc),
+                "error_type": type(exc).__name__
             }
         )
 

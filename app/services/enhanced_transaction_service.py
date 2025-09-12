@@ -222,6 +222,71 @@ class EnhancedTransactionService:
         return enhanced_data
 
     @staticmethod
+    async def create_error_transaction_data(
+            error_type: str,
+            error_code: int,
+            error_detail: Any,
+            transaction_input: dict,
+            customer_id: str,
+            request_headers: dict,
+            client_host: str,
+            validation_stage: str = None
+    ) -> Dict[str, Any]:
+        """Create error transaction data for Kafka logging."""
+        now = datetime.utcnow()
+        device_data = EnhancedTransactionService.generate_enhanced_device_data(request_headers, client_host)
+
+        # Remove sensitive data
+        safe_transaction_input = transaction_input.copy()
+        safe_transaction_input.pop('pin', None)
+
+        error_data = {
+            "customer_id": customer_id,
+            "timestamp": now.isoformat(),
+            "transaction_id": f"err_{uuid.uuid4().hex[:12]}",
+            "log_type": "transaction_error",
+            "customer_segment": "corporate",
+            "status": "failed",
+            "processing_time_ms": random.randint(100, 1000),
+            "business_date": now.date().isoformat(),
+
+            # Error details
+            "error_type": error_type,
+            "error_code": error_code,
+            "error_detail": error_detail,
+            "validation_stage": validation_stage,
+            # "account_validation", "transaction_validation", "pin_validation", etc.
+
+            # Original transaction attempt data
+            "attempted_amount": transaction_input.get("amount"),
+            "attempted_transaction_type": transaction_input.get("transaction_type"),
+            "attempted_channel": transaction_input.get("channel"),
+            "attempted_account_number": transaction_input.get("account_number"),
+            "attempted_recipient_account": transaction_input.get("recipient_account_number"),
+            "attempted_merchant_name": transaction_input.get("merchant_name"),
+            "attempted_merchant_category": transaction_input.get("merchant_category"),
+
+            # Device and session info
+            **device_data,
+
+            # Risk and compliance
+            "risk_assessment_score": round(random.uniform(0.6, 0.9), 3),  # Higher risk for failed transactions
+            "fraud_indicator": error_type in ["pin_validation_failed", "suspicious_activity"],
+
+            # Additional context
+            "transaction_reference": f"ERR{now.strftime('%Y%m%d')}{random.randint(100000, 999999)}",
+        }
+
+        return error_data
+
+    @staticmethod
+    async def send_error_to_kafka(error_data: Dict[str, Any]) -> None:
+        print("KAFKA ERROR\n", error_data)
+        """Send error transaction data to Kafka."""
+        await send_transaction(error_data)
+
+    @staticmethod
     async def send_transaction_to_kafka(transaction_data: Dict[str, Any]) -> None:
+        print("KAFKA SUCCESS \n", transaction_data)
         """Send enhanced transaction data to Kafka."""
         await send_transaction(transaction_data)
