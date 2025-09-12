@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ...api.deps import get_db
 from ...auth import get_current_user
-from ...models import User, Account
+from ...models import User, Account, TransactionHistory
 from ...schemas import (
     GenerateQRISRequest, GenerateQRISResponse,
     ConsumeQRISRequest, ConsumeQRISResponse,
@@ -129,6 +129,34 @@ async def create_retail_transaction_consume(
             qris_data["amount"],
             {"account_number": user_account.account_number, "qris_id": qris_id, "merchant_name": qris_data["merchant_name"]}
         )
+        
+        # Update account balance and create transaction history
+        balance_before = user_account.balance
+        user_account.balance -= qris_data["amount"]
+        balance_after = user_account.balance
+        
+        # Create transaction history record
+        transaction_history = TransactionHistory(
+            user_id=current_user.id,
+            account_id=user_account.id,
+            transaction_id=qris_id,
+            transaction_type="qris_consume",
+            amount=qris_data["amount"],
+            currency=qris_data["currency"],
+            balance_before=balance_before,
+            balance_after=balance_after,
+            status="success",
+            description=f"QRIS payment to {qris_data['merchant_name']}",
+            reference_number=qris_id,
+            recipient_account=None,
+            recipient_name=qris_data["merchant_name"],
+            channel="mobile_app"
+        )
+        
+        db.add(transaction_history)
+        db.commit()
+        db.refresh(user_account)
+        db.refresh(transaction_history)
         
         transaction_data = await EnhancedTransactionService.create_enhanced_retail_transaction_data(
             qris_data, current_user.customer_id, user_account.account_number
