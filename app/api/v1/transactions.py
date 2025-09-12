@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
 from sqlalchemy.orm import Session
 
@@ -11,10 +13,12 @@ from ...schemas import (
 )
 from ...services import transaction_recording_service
 from ...services.qris_service import QRISService
+from ...services.transaction_recording_service import TransactionRecordingService
 from ...services.transaction_service import TransactionService
 from ...services.enhanced_transaction_service import EnhancedTransactionService
 from ...services.pin_validation_service import pin_validation_service
-from ...services.transaction_validation_service import transaction_validation_service
+from ...services.transaction_validation_service import transaction_validation_service, TransactionValidationService
+
 
 router = APIRouter()
 
@@ -141,7 +145,8 @@ async def create_retail_transaction_consume(
         
         # Update account balance and create transaction history
         balance_before = user_account.balance
-        user_account.balance -= qris_data["amount"]
+        amount_decimal = Decimal(str(qris_data["amount"]))
+        user_account.balance -= amount_decimal
         balance_after = user_account.balance
         
         # Create transaction history record
@@ -172,8 +177,8 @@ async def create_retail_transaction_consume(
         )
 
         # Add transaction_id from our database record
-        transaction_data["db_transaction_id"] = transaction_result["transaction_id"]
-        transaction_data["balance_after"] = transaction_result["balance_after"]
+        transaction_data["db_transaction_id"] = qris_id
+        transaction_data["balance_after"] = balance_after
         transaction_data["qris_status"] = "CONSUMED"
 
         # Send to Kafka for additional processing (notifications, analytics, etc.)
@@ -184,15 +189,15 @@ async def create_retail_transaction_consume(
             qris_id=qris_id,
             status="SUCCESS",
             message=f"Payment of {qris_data['amount']} {qris_data['currency']} to {qris_data['merchant_name']} completed from account {user_account.account_number}.",
-            transaction_id=transaction_result["transaction_id"],  # Return our transaction ID
-            balance_after=transaction_result["balance_after"]
+            transaction_id=qris_id,  # Return our transaction ID
+            balance_after=balance_after
         )
 
     except HTTPException as e:
         # Record failed transaction for audit (don't raise if this fails)
         try:
             if 'user_account' in locals() and 'qris_data' in locals():
-                await transaction_recording_service.record_failed_transaction(
+                await TransactionRecordingService.record_failed_transaction(
                     user=current_user,
                     account=user_account,
                     amount=qris_data["amount"],
@@ -212,7 +217,7 @@ async def create_retail_transaction_consume(
         try:
             if 'user_account' in locals():
                 amount = qris_data["amount"] if 'qris_data' in locals() else Decimal("0")
-                await transaction_recording_service.record_failed_transaction(
+                await TransactionRecordingService.record_failed_transaction(
                     user=current_user,
                     account=user_account,
                     amount=amount,
