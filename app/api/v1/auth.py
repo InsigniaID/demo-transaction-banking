@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from sqlalchemy import desc
 
 from ...api.deps import get_db
 from ...auth import get_current_user
-from ...models import User, Account
+from ...models import User, Account, TransactionHistory
 from ...schemas import UserCreate, UserResponse, UserWithAccountsResponse, RegisterResponse, PINValidationRequest, PINValidationResponse
 from ...security import get_password_hash, get_pin_hash, verify_password, verify_pin, create_access_token
 from ...services.auth_service import auth_service
@@ -164,6 +165,27 @@ def get_current_user_accounts(
             for acc in accounts
         ]
     }
+
+
+@router.get("/auth/histories")
+def get_current_user_histories(current_user: User = Depends(get_current_user),
+                               db: Session = Depends(get_db)):
+    histories = (db.query(TransactionHistory)
+                 .filter(TransactionHistory.user_id == current_user.id)
+                 .order_by(desc(TransactionHistory.created_at))
+                 .all())
+
+    return [{
+        "transaction_id": str(his.id),
+        "transaction_date": his.created_at,
+        "transaction_type": his.transaction_type,
+        "amount": his.amount,
+        "currency": his.currency,
+        "status": his.status,
+        "description": his.description,
+        "recipient_name": his.recipient_name,
+        "recipient_number": his.recipient_account,
+    } for his in histories]
 
 
 @router.post("/auth/create-default-account")
