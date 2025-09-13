@@ -266,6 +266,30 @@ async def create_corporate_transaction(
                 }
             )
 
+        # Stage 1.5: Recipient account validation
+        validation_stage = "recipient_account_validation"
+        recipient_account = db.query(Account).filter(Account.account_number == tx.recipient_account_number,
+                                                     Account.status == "active").first()
+
+        if not recipient_account:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Recipient account not found",
+                    "message": f"Active recipient account {tx.recipient_account_number} not found"
+                }
+            )
+
+        # Prevent self-transfer
+        if user_account.account_number == recipient_account.account_number:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Invalid transfer",
+                    "message": "Cannot transfer to the same account"
+                }
+            )
+
         # Stage 2: Transaction validation
         validation_stage = "transaction_validation"
         await transaction_validation_service.validate_transaction(
@@ -297,11 +321,22 @@ async def create_corporate_transaction(
         )
 
         client_host = request.client.host
-        balance_before = user_account.balance
         amount_decimal = Decimal(str(tx.amount))
+
+        # Store balances before transaction
+        sender_balance_before = user_account.balance
+
+        # Stage 4: Balance updates
+        validation_stage = "balance_update"
+
+        # Update sender balance (debit)
         user_account.balance -= amount_decimal
-        balance_after = user_account.balance
-        # Stage 4: Transaction processing
+        sender_balance_after = user_account.balance
+
+        # Update recipient balance (credit)
+        recipient_account.balance += amount_decimal
+
+        # Stage 5: Transaction processing
         validation_stage = "transaction_processing"
         tx_dict = tx.model_dump()
 
@@ -315,16 +350,16 @@ async def create_corporate_transaction(
             client_host=client_host
         )
 
-        # Create transaction history record
+        # Create transaction history record for SENDER
         transaction_history = TransactionHistory(
             user_id=current_user.id,
             account_id=user_account.id,
             transaction_id=transaction_service_data["transaction_id"],
-            transaction_type="transfer",
+            transaction_type="transfer_out",
             amount=amount_decimal,
             currency=tx.currency,
-            balance_before=balance_before,
-            balance_after=balance_after,
+            balance_before=Decimal(str(sender_balance_before)),
+            balance_after=Decimal(str(sender_balance_after)),
             status="success",
             description=tx.transaction_description,
             reference_number=tx.reference_number,
@@ -333,9 +368,15 @@ async def create_corporate_transaction(
             channel="mobile_app"
         )
 
+        # Add both transaction histories
         db.add(transaction_history)
+
+        # Commit all changes together
         db.commit()
+
+        # Refresh all objects
         db.refresh(user_account)
+        db.refresh(recipient_account)
         db.refresh(transaction_history)
 
         await EnhancedTransactionService.send_transaction_to_kafka(transaction_data)
@@ -343,6 +384,9 @@ async def create_corporate_transaction(
         return {"status": "success", "transaction": transaction_data}
 
     except HTTPException as http_exc:
+        # Rollback any database changes
+        db.rollback()
+
         # Send HTTP error to Kafka
         error_data = await EnhancedTransactionService.create_error_transaction_data(
             error_type="http_error",
@@ -361,6 +405,9 @@ async def create_corporate_transaction(
         raise http_exc
 
     except Exception as exc:
+        # Rollback any database changes
+        db.rollback()
+
         # Send system error to Kafka
         error_data = await EnhancedTransactionService.create_error_transaction_data(
             error_type="system_error",
