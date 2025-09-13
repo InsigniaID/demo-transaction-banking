@@ -3,7 +3,7 @@ Transaction validation service for checking balance, limits, and business rules.
 """
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from fastapi import HTTPException
@@ -194,7 +194,6 @@ class TransactionValidationService:
         }
         
         await send_transaction(alert_data)
-    
 
     @staticmethod
     async def _send_validation_success(
@@ -224,30 +223,13 @@ class TransactionValidationService:
             print(f"Failed to send validation success event: {str(e)}")
 
     @staticmethod
-    def get_transaction_limits(account_number: str = None) -> Dict[str, Any]:
-        """Get current transaction limits for specific account or default limits."""
-        if account_number:
-            limits = TransactionLimits.get_limits_for_account(account_number)
-            return {
-                "account_number": account_number,
-                "min_transaction_amount": float(limits["min_transaction_amount"]),
-                "max_transaction_amount": float(limits["max_transaction_amount"]),
-                "daily_transaction_limit": float(limits["daily_transaction_limit"]),
-                "monthly_transaction_limit": float(limits["monthly_transaction_limit"]),
-                "max_transactions_per_day": limits["max_transactions_per_day"],
-                "is_special_account": account_number in TransactionLimits.ACCOUNT_SPECIFIC_LIMITS
-            }
-        else:
-            return {
-                "default_limits": {
-                    "min_transaction_amount": float(TransactionLimits.DEFAULT_LIMITS["min_transaction_amount"]),
-                    "max_transaction_amount": float(TransactionLimits.DEFAULT_LIMITS["max_transaction_amount"]),
-                    "daily_transaction_limit": float(TransactionLimits.DEFAULT_LIMITS["daily_transaction_limit"]),
-                    "monthly_transaction_limit": float(TransactionLimits.DEFAULT_LIMITS["monthly_transaction_limit"]),
-                    "max_transactions_per_day": TransactionLimits.DEFAULT_LIMITS["max_transactions_per_day"]
-                },
-                "special_accounts": list(TransactionLimits.ACCOUNT_SPECIFIC_LIMITS.keys())
-            }
+    def get_transaction_limits() -> Dict[str, float]:
+        """Get current transaction limits."""
+        return {
+            "min_transaction_amount": float(TransactionLimits.MIN_TRANSACTION_AMOUNT),
+            "max_transaction_amount": float(TransactionLimits.MAX_TRANSACTION_AMOUNT),
+            "daily_transaction_limit": float(TransactionLimits.DAILY_TRANSACTION_LIMIT)
+        }
 
 
 # Global instance

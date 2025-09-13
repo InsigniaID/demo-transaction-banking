@@ -63,12 +63,12 @@ class PINValidationService:
             )
 
         if not PINValidationService.validate_pin(user, pin):
-            # Hitung failed attempts
+            # Calc failed attempts
             key = f"{user.customer_id}:{transaction_type}"
-            PINValidationService._failed_attempts[key] = PINValidationService._failed_attempts.get(key, 0) + 1
+            PINValidationService._failed_attempts[key] = (PINValidationService._failed_attempts.get(key, 0) % 3) + 1
             failed_attempts = PINValidationService._failed_attempts[key]
 
-            # Raise exception dengan message ada attempt
+            # Raise exception with message ada attempt
             raise HTTPException(
                 status_code=401,
                 detail={
