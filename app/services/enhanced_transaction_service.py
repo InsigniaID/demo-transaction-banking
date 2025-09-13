@@ -171,10 +171,10 @@ class EnhancedTransactionService:
         device_data = EnhancedTransactionService.generate_enhanced_device_data(request_headers, client_host)
         
         enhanced_data = {
-            "customer_id": customer_id,
             "timestamp": now.isoformat(),
-            "transaction_id": f"corp_{uuid.uuid4().hex[:12]}",
             "log_type": "transaction",
+            "transaction_id": f"corp_{uuid.uuid4().hex[:12]}",
+            "customer_id": customer_id,
             "customer_segment": "corporate",
             "status": "success",
             "processing_time_ms": random.randint(500, 3000),

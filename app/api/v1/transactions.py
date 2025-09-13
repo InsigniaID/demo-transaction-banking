@@ -142,7 +142,6 @@ async def create_retail_transaction_consume(
              "merchant_name": qris_data["merchant_name"]}
         )
 
-        
         # Update account balance and create transaction history
         balance_before = user_account.balance
         amount_decimal = Decimal(str(qris_data["amount"]))
@@ -254,11 +253,9 @@ async def create_corporate_transaction(
     try:
         # Stage 1: Account validation
         validation_stage = "account_validation"
-        user_account = db.query(Account).filter(
-            Account.user_id == current_user.id,
-            Account.account_number == tx.account_number,
-            Account.status == "active"
-        ).first()
+        user_account = db.query(Account).filter(Account.user_id == current_user.id,
+                                                Account.account_number == tx.account_number,
+                                                Account.status == "active").first()
 
         if not user_account:
             raise HTTPException(
@@ -299,6 +296,11 @@ async def create_corporate_transaction(
             }
         )
 
+        client_host = request.client.host
+        balance_before = user_account.balance
+        amount_decimal = Decimal(str(tx.amount))
+        user_account.balance -= amount_decimal
+        balance_after = user_account.balance
         # Stage 4: Transaction processing
         validation_stage = "transaction_processing"
         tx_dict = tx.model_dump()
@@ -306,6 +308,35 @@ async def create_corporate_transaction(
         transaction_data = await EnhancedTransactionService.create_enhanced_corporate_transaction_data(
             tx_dict, current_user.customer_id, dict(request.headers), request.client.host
         )
+        transaction_service_data = await TransactionService.create_corporate_transaction_data(
+            transaction_data=transaction_data,
+            customer_id=str(current_user.id),
+            request_headers=dict(request.headers),
+            client_host=client_host
+        )
+
+        # Create transaction history record
+        transaction_history = TransactionHistory(
+            user_id=current_user.id,
+            account_id=user_account.id,
+            transaction_id=transaction_service_data["transaction_id"],
+            transaction_type="transfer",
+            amount=amount_decimal,
+            currency=tx.currency,
+            balance_before=balance_before,
+            balance_after=balance_after,
+            status="success",
+            description=tx.transaction_description,
+            reference_number=tx.reference_number,
+            recipient_account=tx.recipient_account_number,
+            recipient_name=tx.recipient_account_name,
+            channel="mobile_app"
+        )
+
+        db.add(transaction_history)
+        db.commit()
+        db.refresh(user_account)
+        db.refresh(transaction_history)
 
         await EnhancedTransactionService.send_transaction_to_kafka(transaction_data)
 

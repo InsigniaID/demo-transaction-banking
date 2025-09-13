@@ -74,10 +74,10 @@ class TransactionService:
         processing_time_ms = int((end_time - start_time).total_seconds() * 1000)
 
         transaction_data.update({
-            "customer_id": customer_id,
             "timestamp": datetime.utcnow().isoformat(),
-            "transaction_id": str(uuid.uuid4()),
             "log_type": "transaction",
+            "transaction_id": str(uuid.uuid4()),
+            "customer_id": customer_id,
             "customer_segment": "corporate",
             "status": "success",
             "latitude": request_headers.get("X-Device-Lat"),
