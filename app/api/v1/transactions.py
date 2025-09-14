@@ -345,7 +345,7 @@ async def create_corporate_transaction(
         )
         transaction_service_data = await TransactionService.create_corporate_transaction_data(
             transaction_data=transaction_data,
-            customer_id=str(current_user.id),
+            customer_id=str(current_user.customer_id),
             request_headers=dict(request.headers),
             client_host=client_host
         )

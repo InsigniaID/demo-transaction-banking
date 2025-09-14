@@ -188,6 +188,19 @@ def get_current_user_histories(current_user: User = Depends(get_current_user),
     } for his in histories]
 
 
+@router.get("/auth/account-list")
+def get_account_list(current_user: User = Depends(get_current_user),
+                     db: Session = Depends(get_db)):
+    accounts = (db.query(Account.account_number, User.username)
+                .join(User, Account.user_id == User.id)
+                .all())
+
+    return [{
+        "username": username,
+        "account_number": account_number
+    } for account_number, username in accounts]
+
+
 @router.post("/auth/create-default-account")
 def create_default_account(
     current_user: User = Depends(get_current_user),

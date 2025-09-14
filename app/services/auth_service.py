@@ -60,9 +60,10 @@ class AuthService:
 
         alert = {
             "timestamp": timestamp_str,
-            "log_type": "security_alert",
-            "alert_type": alert_type,
+            "log_type": "login_event",
+            "login_status": "failed",
             "customer_id": user.customer_id if user else "UNKNOWN",
+            "alert_type": alert_type,
             "alert_severity": severity,
             "failed_attempts": attempt_count,
             "time_window_minutes": 30,
@@ -75,7 +76,42 @@ class AuthService:
                     "failure_reason": attempt["failure_reason"],
                     "geolocation": attempt["geolocation"]
                 } for i, attempt in enumerate(window)
-            ]
+            ],
+            "transaction_id": "",
+            "customer_segment": "",
+            "status": "",
+            "processing_time_ms": "",
+            "business_date": "",
+            "transaction_fee": "",
+            "total_amount": "",
+            "account_balance_before": "",
+            "account_balance_after": "",
+            "attempted_amount": "",
+            "attempted_transaction_type": "",
+            "attempted_channel": "",
+            "attempted_account_number": "",
+            "attempted_recipient_account": "",
+            "attempted_merchant_name": "",
+            "attempted_merchant_category": "",
+            "auth_method": "",
+            "auth_success": "",
+            "auth_timestamp": "",
+            "error_type": "",
+            "error_detail": "",
+            "validation_stage": "",
+            "transaction_description": "",
+            "recipient_account_number": "",
+            "recipient_account_name": "",
+            "recipient_bank_code": "",
+            "reference_number": "",
+            "risk_assessment_score": "",
+            "fraud_indicator": "",
+            "aml_screening_result": "",
+            "sanction_screening_result": "",
+            "compliance_status": "",
+            "settlement_date": "",
+            "settlement_status": "",
+            "clearing_code": ""
         }
         await send_transaction(alert)
 
@@ -93,17 +129,61 @@ class AuthService:
         # Send success event
         success_event = {
             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f"),
-            "log_type": "login",
+            "log_type": "login_event",
             "login_status": "success",
             "customer_id": user.customer_id,
-            "ip_address": ip_address,
-            "user_agent": user_agent,
-            "geolocation": {
-                "country": "Indonesia",
-                "city": "Jakarta",
-                "lat": -6.2088,
-                "lon": 106.8456
-            }
+            "alert_type": "",
+            "alert_severity": "",
+            "failed_attempts": 0,
+            "time_window_minutes": 30,
+            "login_attempts": {
+                "attempt_number": 1,
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f"),
+                "ip_address": ip_address,
+                "user_agent": user_agent,
+                "failure_reason": "",
+                "geolocation": [{
+                    "country": "Indonesia",
+                    "city": "Jakarta",
+                    "lat": -6.2088,
+                    "lon": 106.8456
+                }]
+            },
+            "transaction_id": "",
+            "customer_segment": "",
+            "status": "",
+            "processing_time_ms": "",
+            "business_date": "",
+            "transaction_fee": "",
+            "total_amount": "",
+            "account_balance_before": "",
+            "account_balance_after": "",
+            "attempted_amount": "",
+            "attempted_transaction_type": "",
+            "attempted_channel": "",
+            "attempted_account_number": "",
+            "attempted_recipient_account": "",
+            "attempted_merchant_name": "",
+            "attempted_merchant_category": "",
+            "auth_method": "",
+            "auth_success": "",
+            "auth_timestamp": "",
+            "error_type": "",
+            "error_detail": "",
+            "validation_stage": "",
+            "transaction_description": "",
+            "recipient_account_number": "",
+            "recipient_account_name": "",
+            "recipient_bank_code": "",
+            "reference_number": "",
+            "risk_assessment_score": "",
+            "fraud_indicator": "",
+            "aml_screening_result": "",
+            "sanction_screening_result": "",
+            "compliance_status": "",
+            "settlement_date": "",
+            "settlement_status": "",
+            "clearing_code": ""
         }
         await send_transaction(success_event)
 

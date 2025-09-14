@@ -193,7 +193,7 @@ class TransactionValidationService:
             "additional_data": additional_data
         }
         
-        await send_transaction(alert_data)
+        # await send_transaction(alert_data)
 
     @staticmethod
     async def _send_validation_success(
@@ -217,7 +217,7 @@ class TransactionValidationService:
                 "additional_data": additional_data
             }
 
-            await send_transaction(event_data)
+            # await send_transaction(event_data)
 
         except Exception as e:
             print(f"Failed to send validation success event: {str(e)}")

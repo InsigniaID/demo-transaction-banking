@@ -169,12 +169,18 @@ class EnhancedTransactionService:
         fee = EnhancedTransactionService.calculate_transaction_fee(amount, tx_type, channel)
         balances = EnhancedTransactionService.generate_account_balances(customer_id, amount + fee)
         device_data = EnhancedTransactionService.generate_enhanced_device_data(request_headers, client_host)
-        
+        timestamp_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+
         enhanced_data = {
-            "timestamp": now.isoformat(),
+            "timestamp": timestamp_str,
             "log_type": "transaction",
-            "transaction_id": f"corp_{uuid.uuid4().hex[:12]}",
+            "login_status": "",
             "customer_id": customer_id,
+            "alert_type": "",
+            "alert_severity": "",
+            "time_window_minutes": "",
+            "login_attempts": "",
+            "transaction_id": f"corp_{uuid.uuid4().hex[:12]}",
             "customer_segment": "corporate",
             "status": "success",
             "processing_time_ms": random.randint(500, 3000),
@@ -184,17 +190,31 @@ class EnhancedTransactionService:
             "transaction_fee": fee,
             "total_amount": amount + fee,
             **balances,
+
+            # ==MATCH FORMAT TRANSACTION FROM FAILED==
+            "attempted_amount": transaction_data.get("amount"),
+            "attempted_transaction_type": transaction_data.get("transaction_type"),
+            "attempted_channel": transaction_data.get("channel"),
+            "attempted_account_number": transaction_data.get("account_number"),
+            "attempted_recipient_account": transaction_data.get("recipient_account_number"),
+            "attempted_merchant_name": transaction_data.get("merchant_name"),
+            "attempted_merchant_category": transaction_data.get("merchant_category"),
             
             # Enhanced authentication
             "auth_method": "pin",
             "auth_success": True,
             "auth_timestamp": now.isoformat(),
+
+            # ==MATCH FORMAT TRANSACTION FROM FAILED==
+            "error_type": "",
+            "error_code": "",
+            "error_detail": "",
+            "validation_stage": "",
             
             # Device fingerprinting
             **device_data,
             
             # Enhanced transaction metadata
-            "transaction_reference": transaction_data.get("reference_number") or f"CORP{now.strftime('%Y%m%d')}{random.randint(100000, 999999)}",
             "transaction_description": transaction_data.get("transaction_description", "Corporate transaction"),
             
             # Recipient information for transfers
@@ -203,9 +223,10 @@ class EnhancedTransactionService:
             "recipient_bank_code": transaction_data.get("recipient_bank_code"),
             
             # Compliance & risk
+            "risk_assessment_score": round(random.uniform(0.1, 0.3), 3),
+            "fraud_indicator": "false",
             "aml_screening_result": "pass",
             "sanction_screening_result": "pass",
-            "risk_assessment_score": round(random.uniform(0.1, 0.6), 3),
             "compliance_status": "approved",
             
             # Settlement information
@@ -239,23 +260,28 @@ class EnhancedTransactionService:
         # Remove sensitive data
         safe_transaction_input = transaction_input.copy()
         safe_transaction_input.pop('pin', None)
+        timestamp_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
 
         error_data = {
-            "customer_id": customer_id,
-            "timestamp": now.isoformat(),
-            "transaction_id": f"err_{uuid.uuid4().hex[:12]}",
+            "timestamp": timestamp_str,
             "log_type": "transaction_error",
+            "login_status": "",
+            "customer_id": customer_id,
+            "alert_type": "",
+            "alert_severity": "",
+            "time_window_minutes": "",
+            "login_attempts": "",
+            "transaction_id": f"err_{uuid.uuid4().hex[:12]}",
             "customer_segment": "corporate",
             "status": "failed",
             "processing_time_ms": random.randint(100, 1000),
             "business_date": now.date().isoformat(),
 
-            # Error details
-            "error_type": error_type,
-            "error_code": error_code,
-            "error_detail": error_detail,
-            "validation_stage": validation_stage,
-            # "account_validation", "transaction_validation", "pin_validation", etc.
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "transaction_fee": 0,
+            "total_amount": 1000000.0,
+            "account_balance_before": 33500132.73,
+            "account_balance_after": 32500132.73,
 
             # Original transaction attempt data
             "attempted_amount": transaction_input.get("amount"),
@@ -266,15 +292,41 @@ class EnhancedTransactionService:
             "attempted_merchant_name": transaction_input.get("merchant_name"),
             "attempted_merchant_category": transaction_input.get("merchant_category"),
 
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "auth_method": "pin",
+            "auth_success": True,
+            "auth_timestamp": now.isoformat(),
+
+            # Error details
+            "error_type": error_type,
+            "error_code": error_code,
+            "error_detail": error_detail,
+            "validation_stage": validation_stage,
+            # "account_validation", "transaction_validation", "pin_validation", etc.
+
             # Device and session info
             **device_data,
+
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "transaction_description": transaction_input.get("transaction_description"),
+
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "recipient_account_number": transaction_input.get("recipient_account_number"),
+            "recipient_account_name": transaction_input.get("recipient_account_name"),
+            "recipient_bank_code": transaction_input.get("recipient_bank_code"),
+            "reference_number": transaction_input.get("reference_number"),
 
             # Risk and compliance
             "risk_assessment_score": round(random.uniform(0.6, 0.9), 3),  # Higher risk for failed transactions
             "fraud_indicator": error_type in ["pin_validation_failed", "suspicious_activity"],
+            "aml_screening_result": "pass",
+            "sanction_screening_result": "pass",
+            "compliance_status": random.choice(["rejected", "denied", "non-compliant"]),
 
-            # Additional context
-            "transaction_reference": f"ERR{now.strftime('%Y%m%d')}{random.randint(100000, 999999)}",
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "settlement_date": "",
+            "settlement_status": "failed",
+            "clearing_code": ""
         }
 
         return error_data
