@@ -240,7 +240,8 @@ class TransactionRecordingService:
                 "additional_data": additional_data
             }
 
-            await send_transaction(event_data)
+            print("====_send_transaction_event\n", event_data)
+            # await send_transaction(event_data)
 
         except Exception as e:
             print(f"Failed to send transaction event to Kafka: {str(e)}")

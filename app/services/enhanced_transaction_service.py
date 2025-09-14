@@ -194,6 +194,7 @@ class EnhancedTransactionService:
 
             # ==MATCH FORMAT TRANSACTION FROM FAILED==
             "attempted_amount": transaction_data.get("amount"),
+            "currency": "",
             "attempted_transaction_type": transaction_data.get("transaction_type"),
             "attempted_channel": transaction_data.get("channel"),
             "attempted_account_number": transaction_data.get("account_number"),
@@ -211,10 +212,7 @@ class EnhancedTransactionService:
             "error_code": "",
             "error_detail": "",
             "validation_stage": "",
-            
-            # Device fingerprinting
-            **device_data,
-            
+
             # Enhanced transaction metadata
             "transaction_description": transaction_data.get("transaction_description", "Corporate transaction"),
             
@@ -222,6 +220,7 @@ class EnhancedTransactionService:
             "recipient_account_number": transaction_data.get("recipient_account_number"),
             "recipient_account_name": transaction_data.get("recipient_account_name"),
             "recipient_bank_code": transaction_data.get("recipient_bank_code"),
+            "reference_number": "",
             
             # Compliance & risk
             "risk_assessment_score": round(random.uniform(0.1, 0.3), 3),
@@ -233,7 +232,51 @@ class EnhancedTransactionService:
             # Settlement information
             "settlement_date": now.date().isoformat(),
             "settlement_status": "pending",
-            "clearing_code": f"CLR{random.randint(100000, 999999)}"
+            "clearing_code": f"CLR{random.randint(100000, 999999)}",
+            "transaction_type": "",
+            "requested_amount": "",
+            "failure_reason": "",
+            "failure_message": "",
+            "limits": "",
+            "account_number": transaction_data.get("account_number"),
+            "amount": "",
+            "channel": "",
+            "branch_code": "",
+            "province": "",
+            "city": "",
+            "merchant_name": "",
+            "merchant_category": "",
+            "merchant_id": "",
+            "terminal_id": "",
+            "latitude": "",
+            "longitude": "",
+            "device_id": "",
+            "device_type": "",
+            "device_os": "",
+            "device_browser": "",
+            "device_is_trusted": "",
+            "ip_address": "",
+            "user_agent": "",
+            "session_id": "",
+            "customer_age": "",
+            "customer_gender": "",
+            "customer_occupation": "",
+            "customer_income_bracket": "",
+            "customer_education": "",
+            "customer_marital_status": "",
+            "customer_monthly_income": "",
+            "customer_credit_limit": "",
+            "customer_risk_score": "",
+            "customer_kyc_level": "",
+            "customer_pep_status": "",
+            "customer_previous_fraud_incidents": "",
+            "device_fingerprint": "",
+            "qris_id": "",
+            "transaction_reference": "",
+            "interchange_fee": "",
+            "db_transaction_id": "",
+            "balance_after": "",
+            "qris_status": ""
         }
         
         # Merge with original transaction data (excluding 'pin' for security)
@@ -287,6 +330,7 @@ class EnhancedTransactionService:
 
             # Original transaction attempt data
             "attempted_amount": transaction_input.get("amount"),
+            "currency": "",
             "attempted_transaction_type": transaction_input.get("transaction_type"),
             "attempted_channel": transaction_input.get("channel"),
             "attempted_account_number": transaction_input.get("account_number"),
@@ -305,9 +349,6 @@ class EnhancedTransactionService:
             "error_detail": error_detail,
             "validation_stage": validation_stage,
             # "account_validation", "transaction_validation", "pin_validation", etc.
-
-            # Device and session info
-            **device_data,
 
             # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
             "transaction_description": transaction_input.get("transaction_description"),
@@ -328,7 +369,51 @@ class EnhancedTransactionService:
             # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
             "settlement_date": "",
             "settlement_status": "failed",
-            "clearing_code": ""
+            "clearing_code": "",
+            "transaction_type": "",
+            "requested_amount": "",
+            "failure_reason": "",
+            "failure_message": "",
+            "limits": "",
+            "account_number": "",
+            "amount": "",
+            "channel": "",
+            "branch_code": "",
+            "province": "",
+            "city": "",
+            "merchant_name": "",
+            "merchant_category": "",
+            "merchant_id": "",
+            "terminal_id": "",
+            "latitude": "",
+            "longitude": "",
+            "device_id": "",
+            "device_type": "",
+            "device_os": "",
+            "device_browser": "",
+            "device_is_trusted": "",
+            "ip_address": "",
+            "user_agent": "",
+            "session_id": "",
+            "customer_age": "",
+            "customer_gender": "",
+            "customer_occupation": "",
+            "customer_income_bracket": "",
+            "customer_education": "",
+            "customer_marital_status": "",
+            "customer_monthly_income": "",
+            "customer_credit_limit": "",
+            "customer_risk_score": "",
+            "customer_kyc_level": "",
+            "customer_pep_status": "",
+            "customer_previous_fraud_incidents": "",
+            "device_fingerprint": "",
+            "qris_id": "",
+            "transaction_reference": "",
+            "interchange_fee": "",
+            "db_transaction_id": "",
+            "balance_after": "",
+            "qris_status": ""
         }
 
         return error_data

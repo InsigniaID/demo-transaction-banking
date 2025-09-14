@@ -180,6 +180,46 @@ async def create_retail_transaction_consume(
         transaction_data["balance_after"] = balance_after
         transaction_data["qris_status"] = "CONSUMED"
 
+        extra_fields = {
+            "login_status": "",
+            "alert_type": "",
+            "alert_severity": "",
+            "failed_attempts": "",
+            "time_window_minutes": "",
+            "login_attempts": "",
+            "attempted_amount": "",
+            "attempted_transaction_type": "",
+            "attempted_channel": "",
+            "attempted_account_number": "",
+            "attempted_recipient_account": "",
+            "attempted_merchant_name": "",
+            "attempted_merchant_category": "",
+            "auth_timestamp": "",
+            "error_type": "",
+            "error_code": "",
+            "error_detail": "",
+            "validation_stage": "",
+            "transaction_description": "",
+            "recipient_account_number": "",
+            "recipient_account_name": "",
+            "recipient_bank_code": "",
+            "reference_number": "",
+            "risk_assessment_score": "",
+            "fraud_indicator": "",
+            "aml_screening_result": "",
+            "sanction_screening_result": "",
+            "compliance_status": "",
+            "settlement_status": "",
+            "clearing_code": "",
+            "requested_amount": "",
+            "failure_reason": "",
+            "failure_message": "",
+            "limits": ""
+        }
+
+        for k, v in extra_fields.items():
+            transaction_data.setdefault(k, v)
+
         # Send to Kafka for additional processing (notifications, analytics, etc.)
         await EnhancedTransactionService.send_transaction_to_kafka(transaction_data)
         print("QRIS Consume - Transaction sent to Kafka")
@@ -379,6 +419,32 @@ async def create_corporate_transaction(
         db.refresh(recipient_account)
         db.refresh(transaction_history)
 
+        extra_fields = {
+            "customer_age": "",
+            "customer_gender": "",
+            "customer_occupation": "",
+            "customer_income_bracket": "",
+            "customer_education": "",
+            "customer_marital_status": "",
+            "customer_monthly_income": "",
+            "customer_credit_limit": "",
+            "customer_risk_score": "",
+            "customer_kyc_level": "",
+            "customer_pep_status": "",
+            "customer_previous_fraud_incidents": "",
+            "device_fingerprint": "",
+            "qris_id": "",
+            "transaction_reference": "",
+            "interchange_fee": "",
+            "db_transaction_id": "",
+            "balance_after": "",
+            "qris_status": ""
+        }
+
+        for k, v in extra_fields.items():
+            transaction_data.setdefault(k, v)
+
+        print("====create_corporate_transaction\n", transaction_data)
         await EnhancedTransactionService.send_transaction_to_kafka(transaction_data)
 
         return {"status": "success", "transaction": transaction_data}
@@ -399,6 +465,52 @@ async def create_corporate_transaction(
             validation_stage=validation_stage
         )
 
+        extra_fields = {
+            "account_number": "",
+            "amount": "",
+            "channel": "",
+            "branch_code": "string",
+            "province": "string",
+            "city": "string",
+            "merchant_name": "string",
+            "merchant_category": "string",
+            "merchant_id": "string",
+            "terminal_id": "string",
+            "latitude": "",
+            "longitude": "",
+            "device_id": "",
+            "device_type": "",
+            "device_os": "",
+            "device_browser": "",
+            "device_is_trusted": "",
+            "ip_address": "",
+            "user_agent": "",
+            "session_id": "",
+            "customer_age": "",
+            "customer_gender": "",
+            "customer_occupation": "",
+            "customer_income_bracket": "",
+            "customer_education": "",
+            "customer_marital_status": "",
+            "customer_monthly_income": "",
+            "customer_credit_limit": "",
+            "customer_risk_score": "",
+            "customer_kyc_level": "",
+            "customer_pep_status": "",
+            "customer_previous_fraud_incidents": "",
+            "device_fingerprint": "",
+            "qris_id": "",
+            "transaction_reference": "",
+            "interchange_fee": "",
+            "db_transaction_id": "",
+            "balance_after": "",
+            "qris_status": ""
+        }
+
+        for k, v in extra_fields.items():
+            error_data.setdefault(k, v)
+
+        print("====create_corporate_transaction==EXCEPTION==1==\n", error_data)
         await EnhancedTransactionService.send_error_to_kafka(error_data)
 
         # Re-raise the original exception
@@ -423,7 +535,7 @@ async def create_corporate_transaction(
             client_host=request.client.host,
             validation_stage=validation_stage
         )
-
+        print("====create_corporate_transaction==EXCEPTION==2==\n", error_data)
         await EnhancedTransactionService.send_error_to_kafka(error_data)
 
         # Raise HTTP exception for client
