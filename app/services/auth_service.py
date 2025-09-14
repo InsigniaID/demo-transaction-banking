@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import random
 from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
 
@@ -24,18 +25,24 @@ class AuthService:
         if username not in self.failed_logins:
             self.failed_logins[username] = []
 
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
+
         # Add failed attempt
         self.failed_logins[username].append({
             "timestamp": timestamp_str,
             "ip_address": ip_address,
             "user_agent": user_agent,
             "failure_reason": "invalid_password" if user else "user_not_found",
-            "geolocation": {
-                "country": "Indonesia",
-                "city": "Jakarta",
-                "lat": -6.2088,
-                "lon": 106.8456
-            }
+            "geolocation": geo_info
         })
 
         # Get attempts in time window
@@ -172,6 +179,16 @@ class AuthService:
         """Handle successful login."""
         # Clear failed attempts
         self.failed_logins[username] = []
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
 
         # Send success event
         success_event = {
@@ -189,12 +206,7 @@ class AuthService:
                 "ip_address": ip_address,
                 "user_agent": user_agent,
                 "failure_reason": "",
-                "geolocation": [{
-                    "country": "Indonesia",
-                    "city": "Jakarta",
-                    "lat": -6.2088,
-                    "lon": 106.8456
-                }]
+                "geolocation": [geo_info]
             },
             "transaction_id": "",
             "customer_segment": "",
