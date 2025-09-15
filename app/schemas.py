@@ -320,3 +320,156 @@ class AccountBalanceResponse(BaseModel):
 class CreateAccountRequest(BaseModel):
     account_type: Literal["savings", "checking", "corporate"] = "savings"
     initial_balance: Optional[Decimal] = Decimal("0.00")
+
+
+class EnhancedLoginRequest(BaseModel):
+    username: str
+    password: str
+    locationDetectionEnabled: Optional[bool] = False
+    selectedLocation: Optional[str] = ""
+    crashSimulatorEnabled: Optional[bool] = False
+    crashType: Optional[str] = ""
+    databaseErrorSimulationEnabled: Optional[bool] = False
+
+
+class LocationInfo(BaseModel):
+    city: str
+    country: str = "Indonesia"
+    latitude: float
+    longitude: float
+    travel_time_minutes: Optional[int] = None
+    distance_km: Optional[float] = None
+
+
+class SuspiciousActivity(BaseModel):
+    isSuspicious: bool
+    suspicionLevel: Optional[str] = None  # "low", "medium", "high"
+    reason: Optional[str] = None
+    details: Optional[List[str]] = []
+    score: Optional[int] = 0
+
+
+class StandardKafkaEvent(BaseModel):
+    # Core timestamp and logging
+    timestamp: datetime
+    log_type: str
+
+    # Login specific fields
+    login_status: Optional[str] = None  # "success", "failed", "error"
+    customer_id: Optional[str] = None
+
+    # Alert fields
+    alert_type: Optional[str] = None
+    alert_severity: Optional[str] = None
+    failed_attempts: Optional[int] = None
+    time_window_minutes: Optional[int] = None
+    login_attempts: Optional[List[dict]] = None
+
+    # Transaction fields
+    transaction_id: Optional[str] = None
+    customer_segment: Optional[str] = None
+    status: Optional[str] = None
+    processing_time_ms: Optional[int] = None
+    business_date: Optional[str] = None
+    transaction_fee: Optional[float] = None
+    total_amount: Optional[float] = None
+    account_balance_before: Optional[float] = None
+    account_balance_after: Optional[float] = None
+    attempted_amount: Optional[float] = None
+    currency: Optional[str] = None
+    attempted_transaction_type: Optional[str] = None
+    attempted_channel: Optional[str] = None
+    attempted_account_number: Optional[str] = None
+    attempted_recipient_account: Optional[str] = None
+    attempted_merchant_name: Optional[str] = None
+    attempted_merchant_category: Optional[str] = None
+
+    # Authentication fields
+    auth_method: Optional[str] = None
+    auth_success: Optional[bool] = None
+    auth_timestamp: Optional[datetime] = None
+
+    # Error fields
+    error_type: Optional[str] = None
+    error_code: Optional[str] = None
+    error_detail: Optional[str] = None
+    validation_stage: Optional[str] = None
+
+    # Transaction details
+    transaction_description: Optional[str] = None
+    recipient_account_number: Optional[str] = None
+    recipient_account_name: Optional[str] = None
+    recipient_bank_code: Optional[str] = None
+    reference_number: Optional[str] = None
+
+    # Risk and compliance
+    risk_assessment_score: Optional[float] = None
+    fraud_indicator: Optional[str] = None
+    aml_screening_result: Optional[str] = None
+    sanction_screening_result: Optional[str] = None
+    compliance_status: Optional[str] = None
+
+    # Settlement
+    settlement_date: Optional[str] = None
+    settlement_status: Optional[str] = None
+    clearing_code: Optional[str] = None
+
+    # Request details
+    transaction_type: Optional[str] = None
+    requested_amount: Optional[float] = None
+    failure_reason: Optional[str] = None
+    failure_message: Optional[str] = None
+    limits: Optional[dict] = None
+    account_number: Optional[str] = None
+    amount: Optional[float] = None
+    channel: Optional[str] = None
+    branch_code: Optional[str] = None
+    province: Optional[str] = None
+    city: Optional[str] = None
+    merchant_name: Optional[str] = None
+    merchant_category: Optional[str] = None
+    merchant_id: Optional[str] = None
+    terminal_id: Optional[str] = None
+
+    # Location and device
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    device_id: Optional[str] = None
+    device_type: Optional[str] = None
+    device_os: Optional[str] = None
+    device_browser: Optional[str] = None
+    device_is_trusted: Optional[bool] = None
+    ip_address: Optional[str] = None
+    user_agent: Optional[str] = None
+    session_id: Optional[str] = None
+
+    # Customer demographics
+    customer_age: Optional[int] = None
+    customer_gender: Optional[str] = None
+    customer_occupation: Optional[str] = None
+    customer_income_bracket: Optional[str] = None
+    customer_education: Optional[str] = None
+    customer_marital_status: Optional[str] = None
+    customer_monthly_income: Optional[float] = None
+    customer_credit_limit: Optional[float] = None
+    customer_risk_score: Optional[float] = None
+    customer_kyc_level: Optional[str] = None
+    customer_pep_status: Optional[bool] = None
+    customer_previous_fraud_incidents: Optional[int] = None
+
+    # Additional fields
+    device_fingerprint: Optional[str] = None
+    qris_id: Optional[str] = None
+    transaction_reference: Optional[str] = None
+    interchange_fee: Optional[float] = None
+    db_transaction_id: Optional[str] = None
+    balance_after: Optional[float] = None
+    qris_status: Optional[str] = None
+
+
+class EnhancedLoginResponse(BaseModel):
+    access_token: Optional[str] = None
+    token_type: str = "bearer"
+    success: bool = False
+    error: Optional[str] = None
+    suspiciousActivity: Optional[SuspiciousActivity] = None
