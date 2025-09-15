@@ -260,7 +260,7 @@ class EnhancedTransactionService:
             "merchant_id": "",
             "terminal_id": "",
             "latitude": geo_info['lat'],
-            "longitude": geo_info["lot"],
+            "longitude": geo_info["lon"],
             "device_id": "",
             "device_type": "",
             "device_os": "",
