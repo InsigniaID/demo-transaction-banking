@@ -1,10 +1,13 @@
+import random
 from datetime import datetime
 from typing import Dict, Any
 from fastapi import HTTPException
 
 from ..models import User
+from ..schemas import StandardKafkaEvent
 from ..security import verify_pin
 from ..kafka_producer import send_transaction
+from ..utils.cities_data import cities
 
 
 class PINValidationService:
@@ -32,7 +35,7 @@ class PINValidationService:
 
         failure_event = {
             "timestamp": datetime.utcnow().isoformat(),
-            "log_type": "transaction_pin_validation",
+            "log_type": "pin_validation",
             "login_status": "",
             "customer_id": user.customer_id,
             "alert_type": "pin_validation_failure",
@@ -95,6 +98,7 @@ class PINValidationService:
             amount: float = None,
             additional_data: Dict[str, Any] = None
     ) -> None:
+        print(transaction_type)
         """Validate PIN or raise HTTPException and send to Kafka."""
         if not user.hashed_pin:
             raise HTTPException(
@@ -110,6 +114,42 @@ class PINValidationService:
             key = f"{user.customer_id}:{transaction_type}"
             PINValidationService._failed_attempts[key] = (PINValidationService._failed_attempts.get(key, 0) % 3) + 1
             failed_attempts = PINValidationService._failed_attempts[key]
+
+            geo_info = random.choice(cities)
+            pin_error = StandardKafkaEvent(timestamp=datetime.utcnow(),
+                                           log_type=f"{transaction_type}_error_pin",
+                                           login_status="success",
+                                           customer_id=user.customer_id,
+                                           auth_method="password",
+                                           auth_success=False,
+                                           auth_timestamp=datetime.utcnow(),
+                                           error_type="",
+                                           error_detail="",
+                                           failure_reason="",
+                                           failure_message="",
+                                           validation_stage="",
+                                           attempted_channel="web_api",
+                                           ip_address="",
+                                           user_agent="",
+                                           device_type="web",
+                                           device_is_trusted=False,
+                                           session_id=f"session_{datetime.utcnow().timestamp()}",
+                                           city=geo_info["city"],
+                                           province="",
+                                           latitude=geo_info["lat"],
+                                           longitude=geo_info["lon"],
+                                           processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
+                                           business_date=datetime.utcnow().strftime("%Y-%m-%d"),
+                                           status="error",
+                                           alert_type="",
+                                           alert_severity="high")
+
+            event_data = pin_error.model_dump(exclude_none=True)
+            event_data['timestamp'] = pin_error.timestamp.isoformat() + 'Z'
+            event_data['auth_timestamp'] = pin_error.auth_timestamp.isoformat() + 'Z'
+
+            print(event_data)
+            await send_transaction(event_data)
 
             # Raise exception with message ada attempt
             raise HTTPException(

@@ -11,7 +11,7 @@ from ...schemas import (
     EnhancedLoginResponse
 )
 from ...security import get_password_hash, get_pin_hash, verify_password, verify_pin, create_access_token
-from ...services.auth_service import auth_service
+from ...services.auth_service import auth_service, AuthService
 from ...services.location_service import location_service
 from ...database_utils import safe_db_query, get_db_error_details
 
@@ -301,6 +301,24 @@ async def login(
             return EnhancedLoginResponse(success=False, error="Internal server error")
         else:
             raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/auth/otp")
+async def sample_otp_user(request: Request,
+                          current_user: User = Depends(get_current_user),
+                          reason: str = None):
+    await AuthService.handle_otp_error(request, current_user, reason)
+
+    return {"status": "success", "message": reason}
+
+
+@router.post("/auth/otp/advanced")
+async def sample_otp_advanced_user(request: Request,
+                                   current_user: User = Depends(get_current_user),
+                                   reason: str = None):
+    await AuthService.handle_otp_advanced_error(request, current_user, reason)
+
+    return {"status": "success", "message": reason}
 
 
 # Keep the other endpoints unchanged

@@ -281,6 +281,15 @@ async def create_retail_transaction_consume(
         )
 
 
+@router.post("/qris/scan")
+async def scan_qris(request: Request,
+                    current_user: User = Depends(get_current_user),
+                    reason: str = None):
+    await TransactionService.error_qris_scan(request, current_user, reason)
+
+    return {"status": "success", "message": reason}
+
+
 @router.post("/corporate")
 async def create_corporate_transaction(
         request: Request,

@@ -232,7 +232,7 @@ class TransactionValidationService:
         }
 
         print("====_send_validation_failure", alert_data)
-        # await send_transaction(alert_data)
+        await send_transaction(alert_data)
 
     @staticmethod
     async def _send_validation_success(

@@ -1,8 +1,11 @@
+import random
 import uuid
 from datetime import datetime
 from typing import Dict, Any
 
 from ..kafka_producer import send_transaction
+from ..schemas import StandardKafkaEvent
+from ..utils.cities_data import cities
 
 
 class TransactionService:
@@ -103,6 +106,46 @@ class TransactionService:
         })
 
         return transaction_data
+
+    @staticmethod
+    async def error_qris_scan(request, current_user, reason):
+        geo_info = random.choice(cities)
+        ip_address = request.client.host
+        user_agent = request.headers.get("user-agent", "unknown")
+        qris_scan_error = StandardKafkaEvent(timestamp=datetime.utcnow(),
+                                             log_type="qris_scan_error",
+                                             login_status="error",
+                                             customer_id=current_user.customer_id,
+                                             auth_method="password",
+                                             auth_success=False,
+                                             auth_timestamp=datetime.utcnow(),
+                                             error_type="qris_scan_validation",
+                                             error_detail="",
+                                             failure_reason=reason,
+                                             failure_message="",
+                                             validation_stage="",
+                                             attempted_channel="web_api",
+                                             ip_address=ip_address,
+                                             user_agent=user_agent,
+                                             device_type="web",
+                                             device_is_trusted=False,
+                                             session_id=f"session_{datetime.utcnow().timestamp()}",
+                                             city=geo_info["city"],
+                                             province="",
+                                             latitude=geo_info["lat"],
+                                             longitude=geo_info["lon"],
+                                             processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
+                                             business_date=datetime.utcnow().strftime("%Y-%m-%d"),
+                                             status="error",
+                                             alert_type="qris_scan_error",
+                                             alert_severity="high")
+
+        event_data = qris_scan_error.model_dump(exclude_none=True)
+        event_data['timestamp'] = qris_scan_error.timestamp.isoformat() + 'Z'
+        event_data['auth_timestamp'] = qris_scan_error.auth_timestamp.isoformat() + 'Z'
+
+        print(event_data)
+        await send_transaction(event_data)
 
     @staticmethod
     async def send_transaction_to_kafka(transaction_data: Dict[str, Any]) -> None:

@@ -227,7 +227,7 @@ class TransactionRecordingService:
             event_data = {
                 "timestamp": datetime.utcnow().isoformat(),
                 "log_type": "transaction_event",
-                "event_type": "transaction_completed",
+                # "event_type": "transaction_completed",
                 "transaction_id": transaction_record.transaction_id,
                 "customer_id": user.customer_id,
                 "account_number": account.account_number,

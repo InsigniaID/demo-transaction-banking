@@ -1,11 +1,14 @@
+import random
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from ..utils.cities_data import cities
 from ..utils.qris import encode_qris_payload, decode_qris_payload
-from ..schemas import GenerateQRISRequest, GenerateQRISResponse, ConsumeQRISRequest, ConsumeQRISResponse
+from ..schemas import GenerateQRISRequest, GenerateQRISResponse, ConsumeQRISRequest, ConsumeQRISResponse, \
+    StandardKafkaEvent
 from ..models import QRISTransaction
 from ..database import SessionLocal
 
@@ -94,7 +97,7 @@ class QRISService:
             decoded = decode_qris_payload(data.qris_code)
             qris_id = decoded.get("qris_id")
             print(f"QRIS Service - Decoded QRIS ID: {qris_id}")
-            
+
             # Query database for QRIS transaction
             qris_transaction = db.query(QRISTransaction).filter(QRISTransaction.qris_id == qris_id).first()
             print(f"QRIS Service - QRIS data found in DB: {qris_transaction is not None}")
@@ -121,7 +124,9 @@ class QRISService:
             #     raise HTTPException(status_code=400, detail="Player cannot be the same as payee")
 
             # Mark as consumed
-            qris_transaction.status = "CONSUMED"
+
+            # TEMPORARY
+            # qris_transaction.status = "CONSUMED"
             db.commit()
             print("QRIS Service - QRIS validated successfully")
             
