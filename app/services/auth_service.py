@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import random
 from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
 
@@ -29,18 +30,24 @@ class AuthService:
         if username not in self.failed_logins:
             self.failed_logins[username] = []
 
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
+
         # Add failed attempt
         self.failed_logins[username].append({
             "timestamp": timestamp_str,
             "ip_address": ip_address,
             "user_agent": user_agent,
             "failure_reason": "invalid_password" if user else "user_not_found",
-            "geolocation": {
-                "country": "Indonesia",
-                "city": "Jakarta",
-                "lat": -6.2088,
-                "lon": 106.8456
-            }
+            "geolocation": geo_info
         })
 
         # Get attempts in time window
@@ -65,9 +72,10 @@ class AuthService:
 
         alert = {
             "timestamp": timestamp_str,
-            "log_type": "security_alert",
-            "alert_type": alert_type,
+            "log_type": "login_event",
+            "login_status": "failed",
             "customer_id": user.customer_id if user else "UNKNOWN",
+            "alert_type": alert_type,
             "alert_severity": severity,
             "failed_attempts": attempt_count,
             "time_window_minutes": 30,
@@ -80,8 +88,90 @@ class AuthService:
                     "failure_reason": attempt["failure_reason"],
                     "geolocation": attempt["geolocation"]
                 } for i, attempt in enumerate(window)
-            ]
+            ],
+            "transaction_id": "",
+            "customer_segment": "",
+            "status": "",
+            "processing_time_ms": "",
+            "business_date": "",
+            "transaction_fee": "",
+            "total_amount": "",
+            "account_balance_before": "",
+            "account_balance_after": "",
+            "attempted_amount": "",
+            "currency": "",
+            "attempted_transaction_type": "",
+            "attempted_channel": "",
+            "attempted_account_number": "",
+            "attempted_recipient_account": "",
+            "attempted_merchant_name": "",
+            "attempted_merchant_category": "",
+            "auth_method": "",
+            "auth_success": "",
+            "auth_timestamp": "",
+            "error_type": "",
+            "error_code": "",
+            "error_detail": "",
+            "validation_stage": "",
+            "transaction_description": "",
+            "recipient_account_number": "",
+            "recipient_account_name": "",
+            "recipient_bank_code": "",
+            "reference_number": "",
+            "risk_assessment_score": "",
+            "fraud_indicator": "",
+            "aml_screening_result": "",
+            "sanction_screening_result": "",
+            "compliance_status": "",
+            "settlement_date": "",
+            "settlement_status": "",
+            "clearing_code": "",
+            "transaction_type": "",
+            "requested_amount": "",
+            "failure_reason": "",
+            "failure_message": "",
+            "limits": "",
+            "account_number": "",
+            "amount": "",
+            "channel": "",
+            "branch_code": "",
+            "province": "",
+            "city": "",
+            "merchant_name": "",
+            "merchant_category": "",
+            "merchant_id": "",
+            "terminal_id": "",
+            "latitude": "",
+            "longitude": "",
+            "device_id": "",
+            "device_type": "",
+            "device_os": "",
+            "device_browser": "",
+            "device_is_trusted": "",
+            "ip_address": ip_address,
+            "user_agent": user_agent,
+            "session_id": "",
+            "customer_age": "",
+            "customer_gender": "",
+            "customer_occupation": "",
+            "customer_income_bracket": "",
+            "customer_education": "",
+            "customer_marital_status": "",
+            "customer_monthly_income": "",
+            "customer_credit_limit": "",
+            "customer_risk_score": "",
+            "customer_kyc_level": "",
+            "customer_pep_status": "",
+            "customer_previous_fraud_incidents": "",
+            "device_fingerprint": "",
+            "qris_id": "",
+            "transaction_reference": "",
+            "interchange_fee": "",
+            "db_transaction_id": "",
+            "balance_after": "",
+            "qris_status": ""
         }
+
         await send_transaction(alert)
 
     async def handle_successful_login(
@@ -95,6 +185,16 @@ class AuthService:
         """Handle successful login."""
         # Clear failed attempts
         self.failed_logins[username] = []
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
 
         # Get location data based on selected_location or default to Jakarta
         from .location_service import location_service

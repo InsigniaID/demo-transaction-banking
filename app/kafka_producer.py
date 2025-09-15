@@ -37,6 +37,7 @@ async def send_transaction(data: dict, local_kw=None):
         
         await producer.send_and_wait(settings.kafka_topic, data)
         print(f"Successfully sent transaction to Kafka: {data.get('transaction_id', 'unknown')}")
+
     except Exception as e:
         print(f"ERROR: Failed to send to Kafka: {str(e)}")
         # Don't raise the exception - just log and continue

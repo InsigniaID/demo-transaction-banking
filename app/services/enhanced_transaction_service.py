@@ -169,12 +169,30 @@ class EnhancedTransactionService:
         fee = EnhancedTransactionService.calculate_transaction_fee(amount, tx_type, channel)
         balances = EnhancedTransactionService.generate_account_balances(customer_id, amount + fee)
         device_data = EnhancedTransactionService.generate_enhanced_device_data(request_headers, client_host)
-        
+        timestamp_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
+
         enhanced_data = {
-            "customer_id": customer_id,
-            "timestamp": now.isoformat(),
-            "transaction_id": f"corp_{uuid.uuid4().hex[:12]}",
+            "timestamp": timestamp_str,
             "log_type": "transaction",
+            "login_status": "",
+            "customer_id": customer_id,
+            "alert_type": "",
+            "alert_severity": "",
+            "failed_attempts": "",
+            "time_window_minutes": "",
+            "login_attempts": "",
+            "transaction_id": f"corp_{uuid.uuid4().hex[:12]}",
             "customer_segment": "corporate",
             "status": "success",
             "processing_time_ms": random.randint(500, 3000),
@@ -184,34 +202,92 @@ class EnhancedTransactionService:
             "transaction_fee": fee,
             "total_amount": amount + fee,
             **balances,
+
+            # ==MATCH FORMAT TRANSACTION FROM FAILED==
+            "attempted_amount": transaction_data.get("amount"),
+            "currency": "",
+            "attempted_transaction_type": transaction_data.get("transaction_type"),
+            "attempted_channel": transaction_data.get("channel"),
+            "attempted_account_number": transaction_data.get("account_number"),
+            "attempted_recipient_account": transaction_data.get("recipient_account_number"),
+            "attempted_merchant_name": transaction_data.get("merchant_name"),
+            "attempted_merchant_category": transaction_data.get("merchant_category"),
             
             # Enhanced authentication
             "auth_method": "pin",
             "auth_success": True,
             "auth_timestamp": now.isoformat(),
-            
-            # Device fingerprinting
-            **device_data,
-            
+
+            # ==MATCH FORMAT TRANSACTION FROM FAILED==
+            "error_type": "",
+            "error_code": "",
+            "error_detail": "",
+            "validation_stage": "",
+
             # Enhanced transaction metadata
-            "transaction_reference": transaction_data.get("reference_number") or f"CORP{now.strftime('%Y%m%d')}{random.randint(100000, 999999)}",
             "transaction_description": transaction_data.get("transaction_description", "Corporate transaction"),
             
             # Recipient information for transfers
             "recipient_account_number": transaction_data.get("recipient_account_number"),
             "recipient_account_name": transaction_data.get("recipient_account_name"),
             "recipient_bank_code": transaction_data.get("recipient_bank_code"),
+            "reference_number": "",
             
             # Compliance & risk
+            "risk_assessment_score": round(random.uniform(0.1, 0.3), 3),
+            "fraud_indicator": "false",
             "aml_screening_result": "pass",
             "sanction_screening_result": "pass",
-            "risk_assessment_score": round(random.uniform(0.1, 0.6), 3),
             "compliance_status": "approved",
             
             # Settlement information
             "settlement_date": now.date().isoformat(),
             "settlement_status": "pending",
-            "clearing_code": f"CLR{random.randint(100000, 999999)}"
+            "clearing_code": f"CLR{random.randint(100000, 999999)}",
+            "transaction_type": "",
+            "requested_amount": "",
+            "failure_reason": "",
+            "failure_message": "",
+            "limits": "",
+            "account_number": transaction_data.get("account_number"),
+            "amount": "",
+            "channel": "",
+            "branch_code": "",
+            "province": "",
+            "city": "",
+            "merchant_name": "",
+            "merchant_category": "",
+            "merchant_id": "",
+            "terminal_id": "",
+            "latitude": geo_info['lat'],
+            "longitude": geo_info["lon"],
+            "device_id": "",
+            "device_type": "",
+            "device_os": "",
+            "device_browser": "",
+            "device_is_trusted": "",
+            "ip_address": "",
+            "user_agent": "",
+            "session_id": "",
+            "customer_age": "",
+            "customer_gender": "",
+            "customer_occupation": "",
+            "customer_income_bracket": "",
+            "customer_education": "",
+            "customer_marital_status": "",
+            "customer_monthly_income": "",
+            "customer_credit_limit": "",
+            "customer_risk_score": "",
+            "customer_kyc_level": "",
+            "customer_pep_status": "",
+            "customer_previous_fraud_incidents": "",
+            "device_fingerprint": "",
+            "qris_id": "",
+            "transaction_reference": "",
+            "interchange_fee": "",
+            "db_transaction_id": "",
+            "balance_after": "",
+            "qris_status": ""
         }
         
         # Merge with original transaction data (excluding 'pin' for security)
@@ -222,6 +298,156 @@ class EnhancedTransactionService:
         return enhanced_data
 
     @staticmethod
+    async def create_error_transaction_data(
+            error_type: str,
+            error_code: int,
+            error_detail: Any,
+            transaction_input: dict,
+            customer_id: str,
+            request_headers: dict,
+            client_host: str,
+            validation_stage: str = None
+    ) -> Dict[str, Any]:
+        """Create error transaction data for Kafka logging."""
+        now = datetime.utcnow()
+        device_data = EnhancedTransactionService.generate_enhanced_device_data(request_headers, client_host)
+
+        # Remove sensitive data
+        safe_transaction_input = transaction_input.copy()
+        safe_transaction_input.pop('pin', None)
+        timestamp_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
+
+        error_data = {
+            "timestamp": timestamp_str,
+            "log_type": "transaction_error",
+            "login_status": "",
+            "customer_id": customer_id,
+            "alert_type": "",
+            "alert_severity": "",
+            "failed_attempts": "",
+            "time_window_minutes": "",
+            "login_attempts": "",
+            "transaction_id": f"err_{uuid.uuid4().hex[:12]}",
+            "customer_segment": "corporate",
+            "status": "failed",
+            "processing_time_ms": random.randint(100, 1000),
+            "business_date": now.date().isoformat(),
+
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "transaction_fee": 0,
+            "total_amount": 1000000.0,
+            "account_balance_before": 33500132.73,
+            "account_balance_after": 32500132.73,
+
+            # Original transaction attempt data
+            "attempted_amount": transaction_input.get("amount"),
+            "currency": "",
+            "attempted_transaction_type": transaction_input.get("transaction_type"),
+            "attempted_channel": transaction_input.get("channel"),
+            "attempted_account_number": transaction_input.get("account_number"),
+            "attempted_recipient_account": transaction_input.get("recipient_account_number"),
+            "attempted_merchant_name": transaction_input.get("merchant_name"),
+            "attempted_merchant_category": transaction_input.get("merchant_category"),
+
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "auth_method": "pin",
+            "auth_success": True,
+            "auth_timestamp": now.isoformat(),
+
+            # Error details
+            "error_type": error_type,
+            "error_code": error_code,
+            "error_detail": error_detail,
+            "validation_stage": validation_stage,
+            # "account_validation", "transaction_validation", "pin_validation", etc.
+
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "transaction_description": transaction_input.get("transaction_description"),
+
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "recipient_account_number": transaction_input.get("recipient_account_number"),
+            "recipient_account_name": transaction_input.get("recipient_account_name"),
+            "recipient_bank_code": transaction_input.get("recipient_bank_code"),
+            "reference_number": transaction_input.get("reference_number"),
+
+            # Risk and compliance
+            "risk_assessment_score": round(random.uniform(0.6, 0.9), 3),  # Higher risk for failed transactions
+            "fraud_indicator": error_type in ["pin_validation_failed", "suspicious_activity"],
+            "aml_screening_result": "pass",
+            "sanction_screening_result": "pass",
+            "compliance_status": random.choice(["rejected", "denied", "non-compliant"]),
+
+            # ==MATCH FORMAT TRANSACTION FROM SUCCESS==
+            "settlement_date": "",
+            "settlement_status": "failed",
+            "clearing_code": "",
+            "transaction_type": "",
+            "requested_amount": "",
+            "failure_reason": "",
+            "failure_message": "",
+            "limits": "",
+            "account_number": "",
+            "amount": "",
+            "channel": "",
+            "branch_code": "",
+            "province": "",
+            "city": "",
+            "merchant_name": "",
+            "merchant_category": "",
+            "merchant_id": "",
+            "terminal_id": "",
+            "latitude": geo_info["lat"],
+            "longitude": geo_info["lon"],
+            "device_id": "",
+            "device_type": "",
+            "device_os": "",
+            "device_browser": "",
+            "device_is_trusted": "",
+            "ip_address": "",
+            "user_agent": "",
+            "session_id": "",
+            "customer_age": "",
+            "customer_gender": "",
+            "customer_occupation": "",
+            "customer_income_bracket": "",
+            "customer_education": "",
+            "customer_marital_status": "",
+            "customer_monthly_income": "",
+            "customer_credit_limit": "",
+            "customer_risk_score": "",
+            "customer_kyc_level": "",
+            "customer_pep_status": "",
+            "customer_previous_fraud_incidents": "",
+            "device_fingerprint": "",
+            "qris_id": "",
+            "transaction_reference": "",
+            "interchange_fee": "",
+            "db_transaction_id": "",
+            "balance_after": "",
+            "qris_status": ""
+        }
+
+        return error_data
+
+    @staticmethod
+    async def send_error_to_kafka(error_data: Dict[str, Any]) -> None:
+        print("KAFKA ERROR\n", error_data)
+        """Send error transaction data to Kafka."""
+        await send_transaction(error_data)
+
+    @staticmethod
     async def send_transaction_to_kafka(transaction_data: Dict[str, Any]) -> None:
+        print("KAFKA SUCCESS \n", transaction_data)
         """Send enhanced transaction data to Kafka."""
         await send_transaction(transaction_data)

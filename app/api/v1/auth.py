@@ -4,7 +4,7 @@ from sqlalchemy.exc import OperationalError, DatabaseError, InvalidRequestError
 
 from ...api.deps import get_db
 from ...auth import get_current_user
-from ...models import User, Account
+from ...models import TransactionHistory, User, Account
 from ...schemas import (
     UserCreate, UserWithAccountsResponse, RegisterResponse,
     PINValidationRequest, PINValidationResponse, EnhancedLoginRequest,
@@ -410,6 +410,108 @@ def get_current_user_profile(
         updated_at=current_user.updated_at,
         accounts=accounts
     )
+
+
+@router.get("/auth/accounts")
+def get_current_user_accounts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get current user's accounts."""
+    accounts = db.query(Account).filter(Account.user_id == current_user.id).all()
+    
+    return {
+        "user_id": current_user.id,
+        "customer_id": current_user.customer_id,
+        "username": current_user.username,
+        "accounts": [
+            {
+                "id": str(acc.id),
+                "account_number": acc.account_number,
+                "account_type": acc.account_type,
+                "balance": float(acc.balance),
+                "currency": acc.currency,
+                "status": acc.status
+            }
+            for acc in accounts
+        ]
+    }
+
+
+@router.get("/auth/histories")
+def get_current_user_histories(current_user: User = Depends(get_current_user),
+                               db: Session = Depends(get_db)):
+    histories = (db.query(TransactionHistory)
+                 .filter(TransactionHistory.user_id == current_user.id)
+                 .order_by(desc(TransactionHistory.created_at))
+                 .all())
+
+    return [{
+        "transaction_id": str(his.id),
+        "transaction_date": his.created_at,
+        "transaction_type": his.transaction_type,
+        "amount": his.amount,
+        "currency": his.currency,
+        "status": his.status,
+        "description": his.description,
+        "recipient_name": his.recipient_name,
+        "recipient_number": his.recipient_account,
+    } for his in histories]
+
+
+@router.get("/auth/account-list")
+def get_account_list(current_user: User = Depends(get_current_user),
+                     db: Session = Depends(get_db)):
+    accounts = (db.query(Account.account_number, User.username)
+                .join(User, Account.user_id == User.id)
+                .all())
+
+    return [{
+        "username": username,
+        "account_number": account_number
+    } for account_number, username in accounts]
+
+
+@router.post("/auth/create-default-account")
+def create_default_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create default account for user if they don't have any."""
+    existing_accounts = db.query(Account).filter(Account.user_id == current_user.id).count()
+    
+    if existing_accounts > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="User already has accounts"
+        )
+    
+    # Create default savings account
+    account_number = f"ACC{current_user.customer_id.split('-')[1]}001"
+    default_account = Account(
+        user_id=current_user.id,
+        account_number=account_number,
+        account_type="savings",
+        balance=0.00,
+        currency="IDR",
+        status="active"
+    )
+    
+    db.add(default_account)
+    db.commit()
+    db.refresh(default_account)
+    
+    return {
+        "message": "Default account created successfully",
+        "account": {
+            "id": str(default_account.id),
+            "account_number": default_account.account_number,
+            "account_type": default_account.account_type,
+            "balance": float(default_account.balance),
+            "currency": default_account.currency,
+            "status": default_account.status
+        }
+    }
 
 
 @router.post("/auth/validate-pin", response_model=PINValidationResponse)
