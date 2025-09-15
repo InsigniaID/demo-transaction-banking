@@ -171,6 +171,17 @@ class EnhancedTransactionService:
         device_data = EnhancedTransactionService.generate_enhanced_device_data(request_headers, client_host)
         timestamp_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
 
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
+
         enhanced_data = {
             "timestamp": timestamp_str,
             "log_type": "transaction",
@@ -248,8 +259,8 @@ class EnhancedTransactionService:
             "merchant_category": "",
             "merchant_id": "",
             "terminal_id": "",
-            "latitude": "",
-            "longitude": "",
+            "latitude": geo_info['lat'],
+            "longitude": geo_info["lot"],
             "device_id": "",
             "device_type": "",
             "device_os": "",
@@ -305,6 +316,17 @@ class EnhancedTransactionService:
         safe_transaction_input = transaction_input.copy()
         safe_transaction_input.pop('pin', None)
         timestamp_str = now.strftime("%Y-%m-%dT%H:%M:%S.%f")
+
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
 
         error_data = {
             "timestamp": timestamp_str,
@@ -385,8 +407,8 @@ class EnhancedTransactionService:
             "merchant_category": "",
             "merchant_id": "",
             "terminal_id": "",
-            "latitude": "",
-            "longitude": "",
+            "latitude": geo_info["lat"],
+            "longitude": geo_info["lon"],
             "device_id": "",
             "device_type": "",
             "device_os": "",

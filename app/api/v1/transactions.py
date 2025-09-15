@@ -1,4 +1,5 @@
 from decimal import Decimal
+import random
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
 from sqlalchemy.orm import Session
@@ -147,7 +148,7 @@ async def create_retail_transaction_consume(
         amount_decimal = Decimal(str(qris_data["amount"]))
         user_account.balance -= amount_decimal
         balance_after = user_account.balance
-        
+
         # Create transaction history record
         transaction_history = TransactionHistory(
             user_id=current_user.id,
@@ -165,12 +166,12 @@ async def create_retail_transaction_consume(
             recipient_name=qris_data["merchant_name"],
             channel="mobile_app"
         )
-        
+
         db.add(transaction_history)
         db.commit()
         db.refresh(user_account)
         db.refresh(transaction_history)
-        
+
         transaction_data = await EnhancedTransactionService.create_enhanced_retail_transaction_data(
             qris_data, current_user.customer_id, user_account.account_number
         )
@@ -465,6 +466,17 @@ async def create_corporate_transaction(
             validation_stage=validation_stage
         )
 
+        cities = [
+            {"country": "Indonesia", "city": "Jakarta", "lat": -6.2088, "lon": 106.8456},
+            {"country": "Indonesia", "city": "Bandung", "lat": -6.9175, "lon": 107.6191},
+            {"country": "Indonesia", "city": "Surabaya", "lat": -7.2575, "lon": 112.7521},
+            {"country": "Indonesia", "city": "Medan", "lat": 3.5952, "lon": 98.6722},
+            {"country": "Indonesia", "city": "Denpasar", "lat": -8.65, "lon": 115.2167},
+            {"country": "Indonesia", "city": "Makassar", "lat": -5.1477, "lon": 119.4327},
+        ]
+
+        geo_info = random.choice(cities)
+
         extra_fields = {
             "account_number": "",
             "amount": "",
@@ -476,8 +488,8 @@ async def create_corporate_transaction(
             "merchant_category": "string",
             "merchant_id": "string",
             "terminal_id": "string",
-            "latitude": "",
-            "longitude": "",
+            "latitude": geo_info["lat"],
+            "longitude": geo_info["lon"],
             "device_id": "",
             "device_type": "",
             "device_os": "",
