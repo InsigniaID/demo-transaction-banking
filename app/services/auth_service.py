@@ -206,6 +206,7 @@ class AuthService:
             log_type="login",
             login_status="success",
             customer_id=user.customer_id,
+            failed_attempts=0,
             auth_method="password",
             auth_success=True,
             auth_timestamp=now,
