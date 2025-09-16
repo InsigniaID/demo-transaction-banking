@@ -366,13 +366,13 @@ async def create_corporate_transaction(
         )
 
         # Stage 2.5: Fraud detection for large transfers
-        if tx.transaction_type == "transfer" and tx.amount > 100000000:
+        if tx.transaction_type == "transfer" and tx.amount >= 100000000:
             # Check for recent large transfers in the last 10 minutes
             ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
             recent_large_transfers = db.query(TransactionHistory).filter(
                 TransactionHistory.user_id == current_user.id,
                 TransactionHistory.transaction_type == "transfer_out",
-                TransactionHistory.amount > 100000000,
+                TransactionHistory.amount >= 100000000,
                 TransactionHistory.created_at >= ten_minutes_ago,
                 TransactionHistory.status == "success"
             ).all()
