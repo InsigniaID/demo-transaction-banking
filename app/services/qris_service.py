@@ -1,3 +1,4 @@
+import asyncio
 import random
 import uuid
 from datetime import datetime, timedelta
@@ -5,6 +6,7 @@ from typing import Dict, Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from ..kafka_producer import send_transaction, x_send_transaction
 from ..utils.cities_data import cities
 from ..utils.qris import encode_qris_payload, decode_qris_payload
 from ..schemas import GenerateQRISRequest, GenerateQRISResponse, ConsumeQRISRequest, ConsumeQRISResponse, \
@@ -93,6 +95,7 @@ class QRISService:
             close_db = False
 
         try:
+            print("====", data)
             print(f"QRIS Service - Decoding QRIS code: {data.qris_code[:20]}...")
             decoded = decode_qris_payload(data.qris_code)
             qris_id = decoded.get("qris_id")

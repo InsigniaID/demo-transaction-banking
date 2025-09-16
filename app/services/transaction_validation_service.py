@@ -17,9 +17,9 @@ from ..utils.cities_data import cities
 
 class TransactionLimits:
     """Transaction limits configuration."""
-    MIN_TRANSACTION_AMOUNT = Decimal("1000.00")  # Rp 1,000
-    MAX_TRANSACTION_AMOUNT = Decimal("10000000.00")  # Rp 10 juta
-    DAILY_TRANSACTION_LIMIT = Decimal("20000000.00")  # Rp 20 juta/hari
+    MIN_TRANSACTION_AMOUNT = Decimal("10000000.00")  # Rp 1,000
+    MAX_TRANSACTION_AMOUNT = Decimal("1000000000000.00")  # Rp 10 juta
+    DAILY_TRANSACTION_LIMIT = Decimal("2000000000000.00")  # Rp 20 juta/hari
 
 
 class TransactionValidationService:
@@ -56,13 +56,13 @@ class TransactionValidationService:
 
             geo_info = random.choice(cities)
             event_data = StandardKafkaEvent(timestamp=datetime.utcnow(),
-                                            log_type=f"{transaction_type}_error_pin",
+                                            log_type=f"{transaction_type}_error",
                                             login_status="success",
                                             customer_id=user.customer_id,
                                             auth_method="password",
                                             auth_success=False,
                                             auth_timestamp=datetime.utcnow(),
-                                            error_type="",
+                                            error_type="insufficient_balance",
                                             error_detail="",
                                             failure_reason="",
                                             failure_message="",
@@ -82,7 +82,9 @@ class TransactionValidationService:
                                             status="error",
                                             alert_type="",
                                             alert_severity="high")
-
+            event_data = event_data.model_dump(exclude_none=True)
+            event_data['timestamp'] = event_data.timestamp.isoformat() + 'Z'
+            event_data['auth_timestamp'] = event_data.auth_timestamp.isoformat() + 'Z'
 
             await send_transaction(event_data)
 
@@ -374,7 +376,7 @@ class TransactionValidationService:
                 "qris_status": ""
             }
 
-            await send_transaction(event_data)
+            # await send_transaction(event_data)
 
         except Exception as e:
             print(f"Failed to send validation success event: {str(e)}")

@@ -110,6 +110,7 @@ async def create_retail_transaction_consume(
 
         print(f"QRIS Consume - Validating QRIS...")
         qris_data, qris_id = QRISService.validate_and_consume_qris(data, current_user.customer_id, db)
+        print("========", qris_data, qris_id)
         print(f"QRIS Consume - QRIS validated, ID: {qris_id}")
 
         # Prepare additional data for validation and recording
@@ -137,11 +138,11 @@ async def create_retail_transaction_consume(
         await pin_validation_service.validate_pin_or_fail(
             current_user,
             data.pin,
+            data.crash_type,
             "qris_consume",
             qris_data["amount"],
             {"account_number": user_account.account_number, "qris_id": qris_id,
-             "merchant_name": qris_data["merchant_name"]},
-            data.crash_type
+             "merchant_name": qris_data["merchant_name"]}
         )
 
         # Update account balance and create transaction history
@@ -197,7 +198,7 @@ async def create_retail_transaction_consume(
             "attempted_merchant_name": "",
             "attempted_merchant_category": "",
             "auth_timestamp": "",
-            "error_type": "",
+            "error_type": data.crash_type,
             "error_code": "",
             "error_detail": "",
             "validation_stage": "",
@@ -361,6 +362,7 @@ async def create_corporate_transaction(
         await pin_validation_service.validate_pin_or_fail(
             current_user,
             tx.pin,
+            tx.crash_type,
             "corporate_transaction",
             tx.amount,
             {
@@ -388,6 +390,7 @@ async def create_corporate_transaction(
 
         # Stage 5: Transaction processing
         validation_stage = "transaction_processing"
+        error_type = tx.crash_type
         tx_dict = tx.model_dump()
 
         transaction_data = await EnhancedTransactionService.create_enhanced_corporate_transaction_data(

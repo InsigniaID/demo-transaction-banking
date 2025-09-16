@@ -89,7 +89,7 @@ class PINValidationService:
         }
 
         print("====handle_pin_validation_failure\n", failure_event)
-        # await send_transaction(failure_event)
+        await send_transaction(failure_event)
     
     @staticmethod
     async def validate_pin_or_fail(
@@ -150,7 +150,7 @@ class PINValidationService:
             event_data['timestamp'] = pin_error.timestamp.isoformat() + 'Z'
             event_data['auth_timestamp'] = pin_error.auth_timestamp.isoformat() + 'Z'
 
-            print(event_data)
+            print("======================", event_data)
             await send_transaction(event_data)
 
             # Raise exception with message ada attempt
