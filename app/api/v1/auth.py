@@ -305,11 +305,10 @@ async def login(
 
 @router.post("/auth/otp")
 async def sample_otp_user(request: Request,
-                          current_user: User = Depends(get_current_user),
-                          reason: str = None):
-    await AuthService.handle_otp_error(request, current_user, reason)
+                          current_user: User = Depends(get_current_user)):
+    await AuthService.handle_otp_error(request, current_user)
 
-    return {"status": "success", "message": reason}
+    return {"status": "error", "message": "otp_error"}
 
 
 @router.post("/auth/otp/advanced")

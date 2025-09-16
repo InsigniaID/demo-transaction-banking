@@ -443,7 +443,7 @@ class AuthService:
             raise
 
     @staticmethod
-    async def handle_otp_error(request, current_user, reason):
+    async def handle_otp_error(request, current_user):
         geo_info = random.choice(cities)
         ip_address = request.client.host
         user_agent = request.headers.get("user-agent", "unknown")
@@ -456,7 +456,7 @@ class AuthService:
                                        auth_timestamp=datetime.utcnow(),
                                        error_type="otp_validation",
                                        error_detail="",
-                                       failure_reason=reason,
+                                       failure_reason="otp_error",
                                        failure_message="",
                                        validation_stage="",
                                        attempted_channel="web_api",

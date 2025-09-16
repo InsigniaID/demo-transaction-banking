@@ -108,7 +108,7 @@ class TransactionService:
         return transaction_data
 
     @staticmethod
-    async def error_qris_scan(request, current_user, reason):
+    async def error_qris_scan(request, current_user):
         geo_info = random.choice(cities)
         ip_address = request.client.host
         user_agent = request.headers.get("user-agent", "unknown")
@@ -121,7 +121,7 @@ class TransactionService:
                                              auth_timestamp=datetime.utcnow(),
                                              error_type="qris_scan_validation",
                                              error_detail="",
-                                             failure_reason=reason,
+                                             failure_reason="error_open_camera",
                                              failure_message="",
                                              validation_stage="",
                                              attempted_channel="web_api",
