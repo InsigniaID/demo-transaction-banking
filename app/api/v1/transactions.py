@@ -1,5 +1,6 @@
 from decimal import Decimal
 import random
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
 from sqlalchemy.orm import Session
@@ -73,6 +74,7 @@ async def create_retail_transaction_gen(
 
 @router.post("/retail/qris-consume", response_model=ConsumeQRISResponse)
 async def create_retail_transaction_consume(
+        request: Request,
         data: ConsumeQRISRequest = Body(...),
         current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
@@ -109,7 +111,13 @@ async def create_retail_transaction_consume(
             )
 
         print(f"QRIS Consume - Validating QRIS...")
-        qris_data, qris_id = QRISService.validate_and_consume_qris(data, current_user.customer_id, db)
+        qris_data, qris_id = await QRISService.validate_and_consume_qris(
+            data,
+            current_user.customer_id,
+            db,
+            request_headers=dict(request.headers),
+            client_host=request.client.host if request.client else "unknown"
+        )
         print("========", qris_data, qris_id)
         print(f"QRIS Consume - QRIS validated, ID: {qris_id}")
 
@@ -356,6 +364,53 @@ async def create_corporate_transaction(
                 "recipient_account": tx.recipient_account_number
             }
         )
+
+        # Stage 2.5: Fraud detection for large transfers
+        if tx.transaction_type == "transfer" and tx.amount > 100000000:
+            # Check for recent large transfers in the last 10 minutes
+            ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+            recent_large_transfers = db.query(TransactionHistory).filter(
+                TransactionHistory.user_id == current_user.id,
+                TransactionHistory.transaction_type == "transfer_out",
+                TransactionHistory.amount > 100000000,
+                TransactionHistory.created_at >= ten_minutes_ago,
+                TransactionHistory.status == "success"
+            ).all()
+
+            # If more than 3 large transfers in 10 minutes, send fraud alert to Kafka
+            if len(recent_large_transfers) >= 3:
+                print(f"FRAUD ALERT: User {current_user.customer_id} has made {len(recent_large_transfers) + 1} large transfers (>100M) within 10 minutes")
+
+                # Create fraud detection log data
+                fraud_data = await EnhancedTransactionService.create_error_transaction_data(
+                    error_type="fraud_alert_large_transfers",
+                    error_code=200,  # Not an error, just an alert
+                    error_detail={
+                        "message": f"User has made {len(recent_large_transfers) + 1} transfers greater than 100,000,000 within 10 minutes",
+                        "current_transfer_amount": tx.amount,
+                        "recent_transfers_count": len(recent_large_transfers),
+                        "recent_transfer_amounts": [float(t.amount) for t in recent_large_transfers],
+                        "time_window_minutes": 10,
+                        "threshold_amount": 100000000,
+                        "recipient_account": tx.recipient_account_number,
+                        "alert_severity": "HIGH"
+                    },
+                    transaction_input=tx.model_dump(),
+                    customer_id=current_user.customer_id,
+                    request_headers=dict(request.headers),
+                    client_host=request.client.host if request.client else "unknown",
+                    validation_stage="fraud_detection"
+                )
+
+                # Override some fields for fraud alert
+                fraud_data["log_type"] = "fraud_alert"
+                fraud_data["alert_type"] = "multiple_large_transfers"
+                fraud_data["alert_severity"] = "HIGH"
+                fraud_data["risk_assessment_score"] = 0.95
+                fraud_data["fraud_indicator"] = True
+
+                # Send fraud alert to Kafka
+                await EnhancedTransactionService.send_error_to_kafka(fraud_data)
 
         # Stage 3: PIN validation
         validation_stage = "pin_validation"
