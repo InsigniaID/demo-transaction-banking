@@ -1,6 +1,7 @@
 """
 Transaction validation service for checking balance, limits, and business rules.
 """
+import random
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Dict, Any
@@ -10,6 +11,8 @@ from fastapi import HTTPException
 
 from ..models import Account, TransactionHistory, User
 from ..kafka_producer import send_transaction
+from ..schemas import StandardKafkaEvent
+from ..utils.cities_data import cities
 
 
 class TransactionLimits:
@@ -50,6 +53,40 @@ class TransactionValidationService:
                 f"Insufficient balance. Available: {account.balance}, Required: {amount}",
                 additional_data
             )
+
+            geo_info = random.choice(cities)
+            event_data = StandardKafkaEvent(timestamp=datetime.utcnow(),
+                                            log_type=f"{transaction_type}_error_pin",
+                                            login_status="success",
+                                            customer_id=user.customer_id,
+                                            auth_method="password",
+                                            auth_success=False,
+                                            auth_timestamp=datetime.utcnow(),
+                                            error_type="",
+                                            error_detail="",
+                                            failure_reason="",
+                                            failure_message="",
+                                            validation_stage="",
+                                            attempted_channel="web_api",
+                                            ip_address="",
+                                            user_agent="",
+                                            device_type="web",
+                                            device_is_trusted=False,
+                                            session_id=f"session_{datetime.utcnow().timestamp()}",
+                                            city=geo_info["city"],
+                                            province="",
+                                            latitude=geo_info["lat"],
+                                            longitude=geo_info["lon"],
+                                            processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
+                                            business_date=datetime.utcnow().strftime("%Y-%m-%d"),
+                                            status="error",
+                                            alert_type="",
+                                            alert_severity="high")
+
+
+            await send_transaction(event_data)
+
+
             raise HTTPException(
                 status_code=400,
                 detail={

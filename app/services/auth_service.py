@@ -63,7 +63,7 @@ class AuthService:
 
         alert = {
             "timestamp": timestamp_str,
-            "log_type": "login_event",
+            "log_type": "login_error",
             "login_status": "failed",
             "customer_id": user.customer_id if user else "UNKNOWN",
             "alert_type": alert_type,

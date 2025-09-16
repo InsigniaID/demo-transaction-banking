@@ -87,6 +87,7 @@ class TransactionCorporateInput(BaseModel):
     recipient_bank_code: Optional[str] = None
     transaction_description: Optional[str] = None
     reference_number: Optional[str] = None
+    crash_type: Optional[str] = None
 
 
 class TransactionRetail(BaseModel):
@@ -266,6 +267,7 @@ class GenerateQRISResponse(BaseModel):
 class ConsumeQRISRequest(BaseModel):
     qris_code: str
     pin: str
+    crash_type: Optional[str] = None
 
 
 class ConsumeQRISResponse(BaseModel):

@@ -140,7 +140,8 @@ async def create_retail_transaction_consume(
             "qris_consume",
             qris_data["amount"],
             {"account_number": user_account.account_number, "qris_id": qris_id,
-             "merchant_name": qris_data["merchant_name"]}
+             "merchant_name": qris_data["merchant_name"]},
+            data.crash_type
         )
 
         # Update account balance and create transaction history
@@ -182,7 +183,7 @@ async def create_retail_transaction_consume(
         transaction_data["qris_status"] = "CONSUMED"
 
         extra_fields = {
-            "login_status": "",
+            "login_status": "success",
             "alert_type": "",
             "alert_severity": "",
             "failed_attempts": "",

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Dict, Any
 from fastapi import HTTPException
 
+from .crash_simulator import crash_simulator
 from ..models import User
 from ..schemas import StandardKafkaEvent
 from ..security import verify_pin
@@ -14,7 +15,7 @@ class PINValidationService:
     _failed_attempts: Dict[str, int] = {}
 
     @staticmethod
-    def validate_pin(user: User, pin: str) -> bool:
+    def validate_pin(user: User, pin: str, crash_type: str) -> bool:
         """Validate user PIN."""
         if not user.hashed_pin:
             # User doesn't have a PIN set
@@ -94,6 +95,7 @@ class PINValidationService:
     async def validate_pin_or_fail(
             user: User,
             pin: str,
+            crash_type,
             transaction_type: str,
             amount: float = None,
             additional_data: Dict[str, Any] = None
@@ -109,7 +111,7 @@ class PINValidationService:
                 }
             )
 
-        if not PINValidationService.validate_pin(user, pin):
+        if not PINValidationService.validate_pin(user, pin, crash_type):
             # Calc failed attempts
             key = f"{user.customer_id}:{transaction_type}"
             PINValidationService._failed_attempts[key] = (PINValidationService._failed_attempts.get(key, 0) % 3) + 1
@@ -123,7 +125,7 @@ class PINValidationService:
                                            auth_method="password",
                                            auth_success=False,
                                            auth_timestamp=datetime.utcnow(),
-                                           error_type="",
+                                           error_type=crash_type,
                                            error_detail="",
                                            failure_reason="",
                                            failure_message="",
