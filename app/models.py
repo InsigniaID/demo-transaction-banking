@@ -71,7 +71,7 @@ class TransactionHistory(Base):
     recipient_account = Column(String)
     recipient_name = Column(String)
     channel = Column(String)  # mobile_app, web, atm
-    created_at = Column(DateTime(), default=datetime.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.now(), nullable=False)
     
     # Relationships
     user = relationship("User", back_populates="transaction_histories")
