@@ -14,6 +14,7 @@ from ...security import get_password_hash, get_pin_hash, verify_password, verify
 from ...services.auth_service import auth_service, AuthService
 from ...services.location_service import location_service
 from ...database_utils import safe_db_query, get_db_error_details
+from ...utils.cities_data import cities
 
 router = APIRouter()
 
@@ -309,6 +310,11 @@ async def sample_otp_user(request: Request,
     await AuthService.handle_otp_error(request, current_user)
 
     return {"status": "error", "message": "otp_error"}
+
+
+@router.get("/auth/locations")
+async def sample_location_user(current_user: User = Depends(get_current_user)):
+    return {"status": "success", "data": cities}
 
 
 @router.post("/auth/otp/advanced")
