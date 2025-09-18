@@ -313,7 +313,7 @@ async def sample_otp_user(request: Request,
 
 
 @router.get("/auth/locations")
-async def sample_location_user(current_user: User = Depends(get_current_user)):
+async def sample_location_user():
     return {"status": "success", "data": cities}
 
 
