@@ -80,7 +80,7 @@ class ATMServices:
 
             return {
                 "status": "success",
-                "message": f"Tarik tunai {amount} berhasil. Sisa saldo: {ATMState.get_balance()}"
+                "message": f"withdraw {amount} successfully"
             }
 
         except Exception as e:
