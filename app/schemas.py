@@ -1,7 +1,7 @@
 import uuid
 from pydantic import BaseModel, validator
 from zoneinfo import ZoneInfo
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict, Any
 from datetime import datetime
 from decimal import Decimal
 
@@ -475,3 +475,10 @@ class EnhancedLoginResponse(BaseModel):
     success: bool = False
     error: Optional[str] = None
     suspiciousActivity: Optional[SuspiciousActivity] = None
+
+
+class DetectionResult(BaseModel):
+    total: int
+    normal: int
+    anomaly: int
+    details: List[Dict[str, Any]]

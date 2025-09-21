@@ -1,5 +1,6 @@
 from decimal import Decimal
 import random
+import json
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
@@ -7,11 +8,12 @@ from sqlalchemy.orm import Session
 
 from ...api.deps import get_db
 from ...auth import get_current_user
+from ...kafka_producer import send_transaction
 from ...models import User, Account, TransactionHistory
 from ...schemas import (
     GenerateQRISRequest, GenerateQRISResponse,
     ConsumeQRISRequest, ConsumeQRISResponse,
-    TransactionCorporateInput, FraudDataLegitimate
+    TransactionCorporateInput, FraudDataLegitimate, DetectionResult, StandardKafkaEvent
 )
 from ...services import transaction_recording_service
 from ...services.qris_service import QRISService
@@ -626,6 +628,23 @@ async def create_corporate_transaction(
                 "error_type": type(exc).__name__
             }
         )
+
+
+@router.post("/anomaly-detection")
+async def anomaly_detection(result: DetectionResult):
+    try:
+        now = datetime.utcnow()
+        success_event = StandardKafkaEvent(timestamp=now,
+                                           log_type="anomaly_detection",
+                                           processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
+                                           aml_screening_result=json.dumps(result.model_dump()))
+        event_data = success_event.model_dump(exclude_none=True)
+        event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
+
+        await send_transaction(event_data)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing error: {e}")
 
 
 @router.post("/velocity-violation")
