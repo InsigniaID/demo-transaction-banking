@@ -632,12 +632,24 @@ async def create_corporate_transaction(
 
 @router.post("/anomaly-detection")
 async def anomaly_detection(result: DetectionResult):
+    def remove_empty_fields(obj):
+        if isinstance(obj, dict):
+            return {k: remove_empty_fields(v) for k, v in obj.items() if v not in [None, ""]}
+
+        elif isinstance(obj, list):
+            return [remove_empty_fields(v) for v in obj if v not in [None, ""]]
+        
+        else:
+            return obj
+
+    clean_result = remove_empty_fields(result.model_dump())
+
     try:
         now = datetime.utcnow()
         success_event = StandardKafkaEvent(timestamp=now,
                                            log_type="anomaly_detection",
                                            processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
-                                           aml_screening_result=json.dumps(result.model_dump()))
+                                           aml_screening_result=json.dumps(clean_result))
         event_data = success_event.model_dump(exclude_none=True)
         event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
 
