@@ -638,7 +638,7 @@ async def anomaly_detection(result: DetectionResult):
 
         elif isinstance(obj, list):
             return [remove_empty_fields(v) for v in obj if v not in [None, ""]]
-        
+
         else:
             return obj
 
