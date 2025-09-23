@@ -13,8 +13,7 @@ RUN curl -L https://github.com/confluentinc/librdkafka/archive/refs/tags/v2.11.1
     && cd librdkafka-2.11.1 \
     && ./configure \
     && make -j$(nproc) \
-    && make install \
-    && ldconfig
+    && make install
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
