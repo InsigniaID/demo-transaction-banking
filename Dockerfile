@@ -3,7 +3,15 @@ WORKDIR /app
 
 COPY . /app/
 
-RUN apk add --no-cache gcc musl-dev python3-dev librdkafka-dev
+RUN apk add --no-cache \
+    gcc \
+    g++ \
+    musl-dev \
+    python3-dev \
+    librdkafka-dev \
+    cmake \
+    pkgconf \
+    make
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
