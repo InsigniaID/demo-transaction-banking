@@ -26,3 +26,6 @@ dependencies = [
     "azure-ai-agents>=1.1.0",
     "azure-identity-broker>=1.3.0",
 ]
+
+[tool.uv]
+exclude = ["pymsalruntime"]
