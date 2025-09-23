@@ -29,3 +29,4 @@ dependencies = [
 
 [tool.uv]
 exclude = ["pymsalruntime"]
+no-optional = true
