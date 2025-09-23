@@ -444,44 +444,88 @@ class AuthService:
             raise
 
     @staticmethod
-    async def handle_otp_error(request, current_user):
-        geo_info = random.choice(cities)
-        ip_address = request.client.host
-        user_agent = request.headers.get("user-agent", "unknown")
-        otp_error = StandardKafkaEvent(timestamp=datetime.utcnow(),
-                                       log_type="otp_error",
-                                       login_status="error",
-                                       customer_id=current_user.customer_id,
-                                       auth_method="password",
-                                       auth_success=False,
-                                       auth_timestamp=datetime.utcnow(),
-                                       error_type="otp_validation",
-                                       error_detail="",
-                                       failure_reason="otp_error",
-                                       failure_message="",
-                                       validation_stage="",
-                                       attempted_channel="web_api",
-                                       ip_address=ip_address,
-                                       user_agent=user_agent,
-                                       device_type="web",
-                                       device_is_trusted=False,
-                                       session_id=f"session_{datetime.utcnow().timestamp()}",
-                                       city=geo_info["city"],
-                                       province="",
-                                       latitude=geo_info["lat"],
-                                       longitude=geo_info["lon"],
-                                       processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
-                                       business_date=datetime.utcnow().strftime("%Y-%m-%d"),
-                                       status="error",
-                                       alert_type="otp_failure",
-                                       alert_severity="medium")
+    async def handle_otp_error(request, otp, current_user):
+        if otp == "123456":
+            geo_info = random.choice(cities)
+            ip_address = request.client.host
+            user_agent = request.headers.get("user-agent", "unknown")
+            otp_error = StandardKafkaEvent(timestamp=datetime.utcnow(),
+                                           log_type="otp_success",
+                                           login_status="success",
+                                           customer_id=current_user.customer_id,
+                                           auth_method="password",
+                                           auth_success=True,
+                                           auth_timestamp=datetime.utcnow(),
+                                           error_type="",
+                                           error_detail="",
+                                           failure_reason="",
+                                           failure_message="",
+                                           validation_stage="",
+                                           attempted_channel="web_api",
+                                           ip_address=ip_address,
+                                           user_agent=user_agent,
+                                           device_type="web",
+                                           device_is_trusted=True,
+                                           session_id=f"session_{datetime.utcnow().timestamp()}",
+                                           city=geo_info["city"],
+                                           province="",
+                                           latitude=geo_info["lat"],
+                                           longitude=geo_info["lon"],
+                                           processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
+                                           business_date=datetime.utcnow().strftime("%Y-%m-%d"),
+                                           status="",
+                                           alert_type="",
+                                           alert_severity="")
 
-        event_data = otp_error.model_dump(exclude_none=True)
-        event_data['timestamp'] = otp_error.timestamp.isoformat() + 'Z'
-        event_data['auth_timestamp'] = otp_error.auth_timestamp.isoformat() + 'Z'
+            event_data = otp_error.model_dump(exclude_none=True)
+            event_data['timestamp'] = otp_error.timestamp.isoformat() + 'Z'
+            event_data['auth_timestamp'] = otp_error.auth_timestamp.isoformat() + 'Z'
 
-        print(event_data)
-        await send_transaction(event_data)
+            print(event_data)
+            await send_transaction(event_data)
+
+            return {"status": "success", "message": "otp_success"}
+
+        else:
+            geo_info = random.choice(cities)
+            ip_address = request.client.host
+            user_agent = request.headers.get("user-agent", "unknown")
+            otp_error = StandardKafkaEvent(timestamp=datetime.utcnow(),
+                                           log_type="otp_error",
+                                           login_status="error",
+                                           customer_id=current_user.customer_id,
+                                           auth_method="password",
+                                           auth_success=False,
+                                           auth_timestamp=datetime.utcnow(),
+                                           error_type="otp_validation",
+                                           error_detail="",
+                                           failure_reason="otp_error",
+                                           failure_message="",
+                                           validation_stage="",
+                                           attempted_channel="web_api",
+                                           ip_address=ip_address,
+                                           user_agent=user_agent,
+                                           device_type="web",
+                                           device_is_trusted=False,
+                                           session_id=f"session_{datetime.utcnow().timestamp()}",
+                                           city=geo_info["city"],
+                                           province="",
+                                           latitude=geo_info["lat"],
+                                           longitude=geo_info["lon"],
+                                           processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
+                                           business_date=datetime.utcnow().strftime("%Y-%m-%d"),
+                                           status="error",
+                                           alert_type="otp_failure",
+                                           alert_severity="medium")
+
+            event_data = otp_error.model_dump(exclude_none=True)
+            event_data['timestamp'] = otp_error.timestamp.isoformat() + 'Z'
+            event_data['auth_timestamp'] = otp_error.auth_timestamp.isoformat() + 'Z'
+
+            print(event_data)
+            await send_transaction(event_data)
+
+            return {"status": "error", "message": "otp_error"}
 
     @staticmethod
     async def handle_otp_advanced_error(request, current_user, reason):
