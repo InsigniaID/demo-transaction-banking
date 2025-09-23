@@ -308,7 +308,7 @@ async def login(
 async def sample_otp_user(request: Request,
                           otp: str,
                           current_user: User = Depends(get_current_user)):
-    result = AuthService.handle_otp_error(request, otp, current_user)
+    result = await AuthService.handle_otp_error(request, otp, current_user)
 
     return result
 
