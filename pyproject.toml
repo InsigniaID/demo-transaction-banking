@@ -28,8 +28,6 @@ dependencies = [
 ]
 
 [tool.uv]
-exclude = ["pymsalruntime"]
-no-optional = true
-
-[tool.uv.overrides]
-"pymsalruntime" = { version = "0", markers = "python_version >= '3.0'" }
+override-dependencies = [
+  "pymsalruntime==0"
+]
