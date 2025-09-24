@@ -1,16 +1,14 @@
-FROM python:3.11.13-alpine3.22
+FROM python:3.11-slim
 WORKDIR /app
 
 COPY . /app/
 
-RUN apk add --no-cache \
-    bash curl gcc g++ make cmake pkgconf \
-    musl-dev python3-dev \
-    zlib-dev openssl-dev cyrus-sasl-dev \
-    nodejs npm
+RUN apt-get update && apt-get install -y \
+    curl gcc g++ make cmake pkg-config \
+    libssl-dev libsasl2-dev \
+    bash
 
-RUN npm install -g azure-cli \
-    && ln -s $(npm root -g)/.bin/az /usr/local/bin/az \
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash \
     && az --version
 
 RUN curl -L https://github.com/confluentinc/librdkafka/archive/refs/tags/v2.11.1.tar.gz -o librdkafka.tar.gz \
