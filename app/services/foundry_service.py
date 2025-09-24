@@ -1,8 +1,13 @@
 import json
+from datetime import datetime
+
 from azure.ai.projects import AIProjectClient
 from azure.identity import DefaultAzureCredential
 from azure.ai.agents.models import ListSortOrder
 from decouple import config
+
+from app.kafka_producer import send_transaction
+from app.schemas import StandardKafkaEvent
 
 
 class FoundryAnalytics:
@@ -15,10 +20,10 @@ class FoundryAnalytics:
         print(f"DATA FROM MODEL ANOMALY:\n{data}")
         print(f"Created thread, ID: {thread.id}")
 
-        content = (f"Saya memiliki data JSON anomaly transaction seperti ini {data}"
-                   "'prediction': -1 ini artinya anomaly, 'prediction': 1 artinya normal"
-                   "jelaskan penyebab anomaly dan normal sesuai data, dan jika anomaly"
-                   "Apa yang sebaiknya saya lakukan?")
+        content = (f"I have JSON data on anomaly transactions like this {data}"
+                   "'prediction': -1 means anomaly, ‘prediction’: 1 means normal"
+                   "Explain the causes of anomalies and normality according to the data, and if there are anomalies"
+                   "What should I do?")
 
         message = project.agents.messages.create(thread_id=thread.id,
                                                  role="user",
@@ -28,13 +33,28 @@ class FoundryAnalytics:
                                                      agent_id=agent.id)
 
         if run.status == "failed":
-            print(f"Run failed: {run.last_error}")
+            return {"status": "failed", "details": run.last_error}
 
         else:
             print(f"Run status: {run.status}")
             print("Messages in thread:")
             messages = project.agents.messages.list(thread_id=thread.id,
                                                     order=ListSortOrder.ASCENDING)
+
+            assistant_messages = [text_msg.text.value
+                                  for message in messages
+                                  if message.role == "assistant" and message.text_messages
+                                  for text_msg in message.text_messages]
+
+            now = datetime.utcnow()
+            success_event = StandardKafkaEvent(timestamp=now,
+                                               log_type="foundry_response",
+                                               processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
+                                               aml_screening_result=json.dumps(assistant_messages))
+            event_data = success_event.model_dump(exclude_none=True)
+            event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
+
+            await send_transaction(event_data)
 
             for message in messages:
                 print(f"\n{message.role.upper()}:")
@@ -45,3 +65,5 @@ class FoundryAnalytics:
 
                 else:
                     print(message.content)
+
+            return {"status": run.status, "messages": messages}
