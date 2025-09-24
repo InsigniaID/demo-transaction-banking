@@ -20,7 +20,7 @@ class FoundryAnalytics:
         print(f"DATA FROM MODEL ANOMALY:\n{data}")
         print(f"Created thread, ID: {thread.id}")
 
-        content = (f"I have JSON data on anomaly transactions like this {data}"
+        content = (f"I have JSON data on anomaly detection like this {data}"
                    "'prediction': -1 means anomaly, ‘prediction’: 1 means normal"
                    "Explain the causes of anomalies and normality according to the data, and if there are anomalies"
                    "What should I do?")
@@ -50,7 +50,8 @@ class FoundryAnalytics:
             success_event = StandardKafkaEvent(timestamp=now,
                                                log_type="foundry_response",
                                                processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
-                                               aml_screening_result=json.dumps(assistant_messages))
+                                               aml_screening_result=data,
+                                               sanction_screening_result=json.dumps(assistant_messages))
             event_data = success_event.model_dump(exclude_none=True)
             event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
 

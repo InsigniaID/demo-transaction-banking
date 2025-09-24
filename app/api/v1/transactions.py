@@ -654,7 +654,7 @@ async def anomaly_detection(result: DetectionResult):
         event_data = success_event.model_dump(exclude_none=True)
         event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
 
-        await send_transaction(event_data)
+        # await send_transaction(event_data)
         await FoundryAnalytics.foundry_processing(event_data)
 
     except Exception as e:
