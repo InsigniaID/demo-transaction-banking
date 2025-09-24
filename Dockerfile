@@ -9,7 +9,9 @@ RUN apk add --no-cache \
     zlib-dev openssl-dev cyrus-sasl-dev \
     nodejs npm
 
-RUN npm install -g azure-cli
+RUN npm install -g azure-cli \
+    && ln -s $(npm root -g)/.bin/az /usr/local/bin/az \
+    && az --version
 
 RUN curl -L https://github.com/confluentinc/librdkafka/archive/refs/tags/v2.11.1.tar.gz -o librdkafka.tar.gz \
     && tar xzf librdkafka.tar.gz \
