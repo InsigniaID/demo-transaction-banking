@@ -50,7 +50,7 @@ class FoundryAnalytics:
             success_event = StandardKafkaEvent(timestamp=now,
                                                log_type="foundry_response",
                                                processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
-                                               aml_screening_result=data,
+                                               aml_screening_result=json.dumps(data),
                                                sanction_screening_result=json.dumps(assistant_messages))
             event_data = success_event.model_dump(exclude_none=True)
             event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
