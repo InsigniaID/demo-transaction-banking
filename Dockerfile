@@ -6,7 +6,10 @@ COPY . /app/
 RUN apk add --no-cache \
     bash curl gcc g++ make cmake pkgconf \
     musl-dev python3-dev \
-    zlib-dev openssl-dev cyrus-sasl-dev
+    zlib-dev openssl-dev cyrus-sasl-dev \
+    nodejs npm
+
+RUN npm install -g azure-cli
 
 RUN curl -L https://github.com/confluentinc/librdkafka/archive/refs/tags/v2.11.1.tar.gz -o librdkafka.tar.gz \
     && tar xzf librdkafka.tar.gz \
