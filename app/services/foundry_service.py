@@ -21,8 +21,10 @@ class FoundryAnalytics:
         print(f"Created thread, ID: {thread.id}")
 
         content = (f"I have JSON data on anomaly detection like this {data}"
-                   "'prediction': -1 means anomaly, ‘prediction’: 1 means normal"
-                   "Explain the causes of anomalies and normality according to the data, and if there are anomalies"
+                   "'prediction': -1 means anomaly, ‘prediction’: 1 means normal "
+                   "Explain the causes of anomalies and normality based on data "
+                   "such as differences in city or longitude/latitude within a 1-hour period or other factors,"
+                   "and if there are anomalies"
                    "What should I do?")
 
         message = project.agents.messages.create(thread_id=thread.id,
