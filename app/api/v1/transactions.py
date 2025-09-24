@@ -16,6 +16,7 @@ from ...schemas import (
     TransactionCorporateInput, FraudDataLegitimate, DetectionResult, StandardKafkaEvent
 )
 from ...services import transaction_recording_service
+from ...services.foundry_service import FoundryAnalytics
 from ...services.qris_service import QRISService
 from ...services.transaction_recording_service import TransactionRecordingService
 from ...services.transaction_service import TransactionService
@@ -654,6 +655,7 @@ async def anomaly_detection(result: DetectionResult):
         event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
 
         await send_transaction(event_data)
+        await FoundryAnalytics.foundry_processing(event_data)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")
