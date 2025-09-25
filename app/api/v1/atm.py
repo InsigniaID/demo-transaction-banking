@@ -14,8 +14,3 @@ async def sample_insufficient_balance(request: Request,
     result = ATMServices.atm_service(request, current_user, amount)
 
     return result
-
-
-@router.post("/insufficient")
-async def sample():
-    pass
