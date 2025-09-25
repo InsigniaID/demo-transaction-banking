@@ -26,7 +26,7 @@ class InfraServices:
         try:
             event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
                                        log_type="infra_service",
-                                       error_type="driver_error",
+                                       error_type="server_crash",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
@@ -44,6 +44,40 @@ class InfraServices:
             event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
                                        log_type="data_security",
                                        error_type="WAF_BLOCK SQLi",
+                                       customer_id="",
+                                       device_type="server",
+                                       ip_address=request.client.host,
+                                       user_agent=request.headers.get("user-agent"))
+
+            mqtt_client.publish("infra-banking", event.json(), qos=1)
+
+        except Exception as e:
+            return {"status": "error", "message": f"{str(e)}"}
+
+
+    @staticmethod
+    def data_security_ddos(request, current_user):
+        try:
+            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                       log_type="data_security",
+                                       error_type="WAF_RATE_LIMIT DDoS Mitigation",
+                                       customer_id="",
+                                       device_type="server",
+                                       ip_address=request.client.host,
+                                       user_agent=request.headers.get("user-agent"))
+
+            mqtt_client.publish("infra-banking", event.json(), qos=1)
+
+        except Exception as e:
+            return {"status": "error", "message": f"{str(e)}"}
+
+
+    @staticmethod
+    def data_security_brute_force(request, current_user):
+        try:
+            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                       log_type="data_security",
+                                       error_type="WAF_RATE_LIMIT Brute Force",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
