@@ -376,7 +376,7 @@ class TransactionValidationService:
                 "qris_status": ""
             }
 
-            # await send_transaction(event_data)
+            await send_transaction(event_data)
 
         except Exception as e:
             print(f"Failed to send validation success event: {str(e)}")

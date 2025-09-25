@@ -1,7 +1,8 @@
+import random
 from datetime import datetime, timezone
-
 from app import mqtt_client
 from app.schemas import StandardKafkaEvent
+from app.utils.cities_data import cities
 
 
 class ATMState:
@@ -27,6 +28,8 @@ class ATMState:
 class ATMServices:
     @staticmethod
     def atm_service(request, current_user, amount: int):
+        geo_info = random.choice(cities)
+
         try:
             success = ATMState.withdraw(amount)
 
@@ -36,6 +39,10 @@ class ATMServices:
                                            error_type="insufficient_machine",
                                            customer_id=current_user.customer_id,
                                            device_type="atm_machine",
+                                           city=geo_info["city"],
+                                           province="",
+                                           latitude=geo_info["lat"],
+                                           longitude=geo_info["lon"],
                                            ip_address=request.client.host,
                                            user_agent=request.headers.get("user-agent"),
                                            requested_amount=amount,
@@ -54,6 +61,10 @@ class ATMServices:
                                        log_type="atm_withdrawal",
                                        customer_id=current_user.customer_id,
                                        device_type="atm_machine",
+                                       city=geo_info["city"],
+                                       province="",
+                                       latitude=geo_info["lat"],
+                                       longitude=geo_info["lon"],
                                        ip_address=request.client.host,
                                        user_agent=request.headers.get("user-agent"),
                                        requested_amount=amount,
@@ -70,6 +81,10 @@ class ATMServices:
                                            alert_type="low_balance",
                                            alert_severity="warning",
                                            device_type="atm_machine",
+                                           city=geo_info["city"],
+                                           province="",
+                                           latitude=geo_info["lat"],
+                                           longitude=geo_info["lon"],
                                            ip_address=request.client.host,
                                            user_agent=request.headers.get("user-agent"),
                                            account_balance_after=ATMState.get_balance(),
