@@ -13,21 +13,20 @@ from app.schemas import StandardKafkaEvent
 class FoundryAnalytics:
     @staticmethod
     async def foundry_processing(data):
-        project = AIProjectClient(credential=DefaultAzureCredential(),
-                                  endpoint=config('ENDPOINT_FOUNDRY'))
+        project = AIProjectClient(credential=DefaultAzureCredential(), endpoint=config('ENDPOINT_FOUNDRY'))
         agent = project.agents.get_agent(config("AGENT"))
         thread = project.agents.threads.create()
         print(f"DATA FROM MODEL ANOMALY:\n{data}")
         print(f"Created thread, ID: {thread.id}")
 
-        content = (f"I have JSON data on anomaly detection like this {data} "
+        content = (f"I have JSON log data on anomaly detection, this is log data {data}. "
                    "'prediction': -1 means anomaly, 'prediction': 1 means normal. "
-                   "Explain the causes of anomalies and normality based on data, "
-                   "including cross-channel factors such as location differences (city or longitude/latitude within a 1-hour period), "
-                   "OTP errors or multiple OTP failures, ATM anomalies such as unusual withdrawal location, frequency, or amount, "
-                   "QRIS anomalies such as suspicious merchants or abnormal frequency, "
-                   "transfer anomalies such as large amounts, high frequency, or new/blacklisted recipients, "
-                   "and login anomalies such as new device, IP, or unusual session patterns.")
+                   "Explain the causes of anomalies and normality based on this log data, "
+                   "considering cross-channel factors such as location differences (city or longitude/latitude within a 1-hour period), "
+                   "OTP errors or multiple OTP failures, ATM anomalies (unusual withdrawal location, frequency, or amount), "
+                   "QRIS anomalies (suspicious merchants or abnormal frequency), "
+                   "transfer anomalies (large amounts, high frequency, or new/blacklisted recipients), "
+                   "and login anomalies (new device, IP, or unusual session patterns)")
 
         message = project.agents.messages.create(thread_id=thread.id,
                                                  role="user",
