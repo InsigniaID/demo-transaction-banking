@@ -27,16 +27,39 @@ class ATMState:
 
 class ATMServices:
     @staticmethod
-    def atm_service(request, current_user, amount: int):
-        geo_info = random.choice(cities)
+    def atm_service(request, amount: int, pin: str, current_user):
+        if pin == "123456":
+            geo_info = random.choice(cities)
 
-        try:
-            success = ATMState.withdraw(amount)
+            try:
+                success = ATMState.withdraw(amount)
 
-            if not success:
+                if not success:
+                    event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                               log_type="atm_insufficient",
+                                               error_type="insufficient_machine",
+                                               customer_id=current_user.customer_id,
+                                               device_type="atm_machine",
+                                               city=geo_info["city"],
+                                               province="",
+                                               latitude=geo_info["lat"],
+                                               longitude=geo_info["lon"],
+                                               ip_address=request.client.host,
+                                               user_agent=request.headers.get("user-agent"),
+                                               requested_amount=amount,
+                                               failure_reason="ATM balance insufficient",
+                                               account_balance_before=ATMState.get_balance(),
+                                               account_balance_after=ATMState.get_balance())
+
+                    mqtt_client.publish("infra-banking", event.json(), qos=1)
+
+                    return {"status": "error", "message": "Saldo ATM tidak cukup"}
+
+                balance_before = ATMState.get_balance() + amount
+                balance_after = ATMState.get_balance()
+
                 event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
-                                           log_type="atm_insufficient",
-                                           error_type="insufficient_machine",
+                                           log_type="atm_withdrawal",
                                            customer_id=current_user.customer_id,
                                            device_type="atm_machine",
                                            city=geo_info["city"],
@@ -46,68 +69,48 @@ class ATMServices:
                                            ip_address=request.client.host,
                                            user_agent=request.headers.get("user-agent"),
                                            requested_amount=amount,
-                                           failure_reason="ATM balance insufficient",
-                                           account_balance_before=ATMState.get_balance(),
-                                           account_balance_after=ATMState.get_balance())
+                                           account_balance_before=balance_before,
+                                           account_balance_after=balance_after,
+                                           transaction_type="cash_withdrawal",
+                                           status="success")
 
                 mqtt_client.publish("infra-banking", event.json(), qos=1)
 
-                return {"status": "error", "message": "Saldo ATM tidak cukup"}
+                if ATMState.is_low_balance():
+                    notif = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                               log_type="atm_low_balance",
+                                               alert_type="low_balance",
+                                               alert_severity="warning",
+                                               device_type="atm_machine",
+                                               city=geo_info["city"],
+                                               province="",
+                                               latitude=geo_info["lat"],
+                                               longitude=geo_info["lon"],
+                                               ip_address=request.client.host,
+                                               user_agent=request.headers.get("user-agent"),
+                                               account_balance_after=ATMState.get_balance(),
+                                               total_amount=ATMState.TOTAL_BALANCE,
+                                               failure_message="ATM balance below 30%")
 
-            balance_before = ATMState.get_balance() + amount
-            balance_after = ATMState.get_balance()
+                    mqtt_client.publish("infra-banking", notif.json(), qos=1)
 
-            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
-                                       log_type="atm_withdrawal",
-                                       customer_id=current_user.customer_id,
-                                       device_type="atm_machine",
-                                       city=geo_info["city"],
-                                       province="",
-                                       latitude=geo_info["lat"],
-                                       longitude=geo_info["lon"],
-                                       ip_address=request.client.host,
-                                       user_agent=request.headers.get("user-agent"),
-                                       requested_amount=amount,
-                                       account_balance_before=balance_before,
-                                       account_balance_after=balance_after,
-                                       transaction_type="cash_withdrawal",
-                                       status="success")
+                return {
+                    "status": "success",
+                    "message": f"withdraw {amount} successfully"
+                }
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            except Exception as e:
+                err_event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                               log_type="atm_error",
+                                               error_type="exception",
+                                               error_detail=str(e),
+                                               device_type="atm_machine",
+                                               ip_address=request.client.host,
+                                               user_agent=request.headers.get("user-agent"))
 
-            if ATMState.is_low_balance():
-                notif = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
-                                           log_type="atm_low_balance",
-                                           alert_type="low_balance",
-                                           alert_severity="warning",
-                                           device_type="atm_machine",
-                                           city=geo_info["city"],
-                                           province="",
-                                           latitude=geo_info["lat"],
-                                           longitude=geo_info["lon"],
-                                           ip_address=request.client.host,
-                                           user_agent=request.headers.get("user-agent"),
-                                           account_balance_after=ATMState.get_balance(),
-                                           total_amount=ATMState.TOTAL_BALANCE,
-                                           failure_message="ATM balance below 30%")
+                mqtt_client.publish("infra-banking", err_event.json(), qos=1)
 
-                mqtt_client.publish("infra-banking", notif.json(), qos=1)
+                return {"status": "error", "message": str(e)}
 
-            return {
-                "status": "success",
-                "message": f"withdraw {amount} successfully"
-            }
-
-        except Exception as e:
-            err_event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
-                                           log_type="atm_error",
-                                           error_type="exception",
-                                           error_detail=str(e),
-                                           device_type="atm_machine",
-                                           ip_address=request.client.host,
-                                           user_agent=request.headers.get("user-agent"))
-
-            mqtt_client.publish("infra-banking", err_event.json(), qos=1)
-
-            return {"status": "error", "message": str(e)}
-
+        else:
+            return {"status": "error", "message": "wrong pin"}
