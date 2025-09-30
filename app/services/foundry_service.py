@@ -62,7 +62,7 @@ class FoundryAnalytics:
             event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
             global card_counter
             card_counter += 1
-            list_id = "68c3a307143a6b3c79d14614"
+            list_id = config("TRELLO_LIST_ID")
             name = f"Card #{card_counter}"
             api_key = config("TRELLO_API_KEY")
             token = config("TRELLO_TOKEN")
