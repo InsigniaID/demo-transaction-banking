@@ -24,6 +24,7 @@ dependencies = [
     "azure-identity>=1.25.0",
     "azure-ai-projects>=1.0.0",
     "azure-ai-agents>=1.1.0",
+    "psutil>=6.1.0",
 ]
 
 [tool.uv]

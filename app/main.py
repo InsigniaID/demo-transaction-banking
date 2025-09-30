@@ -5,6 +5,7 @@ from .core.config import settings
 from .database import Base, engine
 from .kafka_producer import init_kafka, shutdown_kafka
 from .api.v1.api import api_router
+from .middleware import performance_monitoring_middleware
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -23,6 +24,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add performance monitoring middleware
+app.middleware("http")(performance_monitoring_middleware)
 
 
 @app.on_event("startup")
