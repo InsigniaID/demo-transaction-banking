@@ -1,3 +1,5 @@
+import tempfile
+
 import requests
 from sqlalchemy.orm import Session
 import json
@@ -54,15 +56,43 @@ class TrelloClient:
         if due:
             query['due'] = due
 
+        if len(desc) <= 16384:
+            query["desc"] = desc
+        else:
+            query["desc"] = "📎 Full analysis attached as .txt (too long for Trello desc)."
+
         response = requests.post(url, params=query)
         if response.status_code == 200:
             card = response.json()
             print(f"✅ Card created: {card['name']}")
             print(f"   URL: {card['url']}")
+
+            if len(desc) > 16384:
+                self.add_attachment(card["id"], desc)
+
             return card
         else:
             print(f"❌ Error: {response.status_code}")
             return None
+
+    def add_attachment(self, card_id, text_content):
+        url = f"{self.base_url}/cards/{card_id}/attachments"
+        query = self.auth_params.copy()
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".txt", mode="w", encoding="utf-8") as tmp:
+            tmp.write(text_content)
+            tmp_path = tmp.name
+
+        with open(tmp_path, "rb") as f:
+            files = {"file": (os.path.basename(tmp_path), f)}
+            response = requests.post(url, params=query, files=files)
+
+        os.remove(tmp_path)
+
+        if response.status_code == 200:
+            print("📎 Attachment uploaded successfully.")
+        else:
+            print(f"❌ Error uploading attachment: {response.status_code} - {response.text}")
 
     def add_checklist(self, card_id, checklist_name, items):
         url = f"{self.base_url}/checklists"
@@ -120,6 +150,7 @@ class TrelloClient:
 
 
 print("✅ TrelloClient class defined")
+
 
 def get_next_card_number_and_log(db: Session, assistant_messages: str) -> int:
     seq = db.query(TrelloCardSequence).first()
