@@ -49,8 +49,7 @@ class TrelloClient:
         query = self.auth_params.copy()
         query.update({
             'idList': list_id,
-            'name': name,
-            'desc': desc
+            'name': name
             # 'desc': desc
         })
         if due:
