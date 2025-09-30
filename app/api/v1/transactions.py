@@ -1,6 +1,7 @@
 from decimal import Decimal
 import random
 import json
+import uuid
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
@@ -491,24 +492,24 @@ async def create_corporate_transaction(
         db.refresh(transaction_history)
 
         extra_fields = {
-            "customer_age": "",
-            "customer_gender": "",
-            "customer_occupation": "",
-            "customer_income_bracket": "",
-            "customer_education": "",
-            "customer_marital_status": "",
-            "customer_monthly_income": "",
-            "customer_credit_limit": "",
-            "customer_risk_score": "",
-            "customer_kyc_level": "",
-            "customer_pep_status": "",
-            "customer_previous_fraud_incidents": "",
-            "device_fingerprint": "",
+            "customer_age": random.randint(25, 60),
+            "customer_gender": random.choice(["M", "F"]),
+            "customer_occupation": random.choice(["karyawan", "wiraswasta", "pns", "direktur", "manager"]),
+            "customer_income_bracket": random.choice(["5-10jt", "10-25jt", "25-50jt", ">50jt"]),
+            "customer_education": random.choice(["S1", "S2", "S3"]),
+            "customer_marital_status": random.choice(["married", "single"]),
+            "customer_monthly_income": random.uniform(10000000, 100000000),
+            "customer_credit_limit": random.uniform(50000000, 500000000),
+            "customer_risk_score": round(random.uniform(0.1, 0.4), 3),
+            "customer_kyc_level": random.choice(["enhanced", "premium"]),
+            "customer_pep_status": random.choice([True, False]),
+            "customer_previous_fraud_incidents": random.randint(0, 1),
+            "device_fingerprint": f"fp_{uuid.uuid4().hex[:16]}",
             "qris_id": "",
-            "transaction_reference": "",
-            "interchange_fee": "",
-            "db_transaction_id": "",
-            "balance_after": "",
+            "transaction_reference": f"REF{datetime.utcnow().strftime('%Y%m%d')}{random.randint(100000, 999999)}",
+            "interchange_fee": round(float(tx.amount) * 0.005, 2),
+            "db_transaction_id": f"db_{uuid.uuid4().hex[:12]}",
+            "balance_after": float(sender_balance_after),
             "qris_status": ""
         }
 

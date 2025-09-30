@@ -84,6 +84,9 @@ class TransactionService:
         end_time = datetime.utcnow()
         processing_time_ms = int((end_time - start_time).total_seconds() * 1000)
 
+        # Get location data with fallback
+        geo_info = random.choice(cities)
+
         transaction_data.update({
             "timestamp": datetime.utcnow().isoformat(),
             "log_type": "transaction",
@@ -91,18 +94,18 @@ class TransactionService:
             "customer_id": customer_id,
             "customer_segment": "corporate",
             "status": "success",
-            "latitude": request_headers.get("X-Device-Lat"),
-            "longitude": request_headers.get("X-Device-Lon"),
+            "latitude": request_headers.get("X-Device-Lat") or geo_info["lat"],
+            "longitude": request_headers.get("X-Device-Lon") or geo_info["lon"],
             "processing_time_ms": processing_time_ms,
             "business_date": datetime.utcnow().date().isoformat(),
-            "device_id": request_headers.get("X-Device-ID"),
-            "device_type": request_headers.get("X-Device-Type"),
-            "device_os": request_headers.get("X-Device-OS"),
-            "device_browser": request_headers.get("X-Device-Browser"),
+            "device_id": request_headers.get("X-Device-ID") or f"dev_corp_{uuid.uuid4().hex[:10]}",
+            "device_type": request_headers.get("X-Device-Type") or "web",
+            "device_os": request_headers.get("X-Device-OS") or random.choice(["Windows 11", "macOS 14", "Ubuntu 22.04"]),
+            "device_browser": request_headers.get("X-Device-Browser") or random.choice(["Chrome 120", "Safari 17", "Firefox 121"]),
             "device_is_trusted": request_headers.get("X-Device-Trusted") == "true",
             "ip_address": client_host,
-            "user_agent": request_headers.get("user-agent"),
-            "session_id": request_headers.get("X-Session-ID"),
+            "user_agent": request_headers.get("user-agent") or "Mozilla/5.0 (Corporate Banking App)",
+            "session_id": request_headers.get("X-Session-ID") or f"sess_{uuid.uuid4().hex[:8]}",
         })
 
         return transaction_data

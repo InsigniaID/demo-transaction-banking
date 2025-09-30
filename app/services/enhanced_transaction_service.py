@@ -253,14 +253,14 @@ class EnhancedTransactionService:
             "terminal_id": "",
             "latitude": geo_info['lat'],
             "longitude": geo_info["lon"],
-            "device_id": "",
-            "device_type": "",
-            "device_os": "",
-            "device_browser": "",
-            "device_is_trusted": "",
-            "ip_address": "",
-            "user_agent": "",
-            "session_id": "",
+            "device_id": device_data["device_id"],
+            "device_type": device_data["device_type"],
+            "device_os": device_data["device_os"],
+            "device_browser": device_data["device_browser"],
+            "device_is_trusted": device_data["device_is_trusted"],
+            "ip_address": device_data["ip_address"],
+            "user_agent": device_data["user_agent"],
+            "session_id": device_data["session_id"],
             "customer_age": "",
             "customer_gender": "",
             "customer_occupation": "",
@@ -281,11 +281,14 @@ class EnhancedTransactionService:
             "balance_after": "",
             "qris_status": ""
         }
-        
+
+        # Update device_fingerprint with actual data
+        enhanced_data["device_fingerprint"] = device_data["device_fingerprint"]
+
         # Merge with original transaction data (excluding 'pin' for security)
         transaction_copy = transaction_data.copy()
         transaction_copy.pop('pin', None)  # Remove PIN from logs
-        
+
         enhanced_data.update(transaction_copy)
         return enhanced_data
 
@@ -392,14 +395,14 @@ class EnhancedTransactionService:
             "terminal_id": "",
             "latitude": geo_info["lat"],
             "longitude": geo_info["lon"],
-            "device_id": "",
-            "device_type": "",
-            "device_os": "",
-            "device_browser": "",
-            "device_is_trusted": "",
-            "ip_address": "",
-            "user_agent": "",
-            "session_id": "",
+            "device_id": device_data["device_id"],
+            "device_type": device_data["device_type"],
+            "device_os": device_data["device_os"],
+            "device_browser": device_data["device_browser"],
+            "device_is_trusted": device_data["device_is_trusted"],
+            "ip_address": device_data["ip_address"],
+            "user_agent": device_data["user_agent"],
+            "session_id": device_data["session_id"],
             "customer_age": "",
             "customer_gender": "",
             "customer_occupation": "",
@@ -412,7 +415,7 @@ class EnhancedTransactionService:
             "customer_kyc_level": "",
             "customer_pep_status": "",
             "customer_previous_fraud_incidents": "",
-            "device_fingerprint": "",
+            "device_fingerprint": device_data["device_fingerprint"],
             "qris_id": "",
             "transaction_reference": "",
             "interchange_fee": "",
