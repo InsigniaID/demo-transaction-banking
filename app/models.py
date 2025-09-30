@@ -93,3 +93,19 @@ class QRISTransaction(Base):
     status = Column(String, default="ACTIVE", nullable=False)  # ACTIVE, CONSUMED, EXPIRED
     expired_at = Column(DateTime(), nullable=False)
     created_at = Column(DateTime(), default=datetime.now(), nullable=False)
+
+
+class TrelloCardSequence(Base):
+    __tablename__ = "trello_card_sequence"
+
+    id = Column(Integer, primary_key=True, index=True)
+    last_number = Column(Integer, nullable=False, default=0)
+
+
+class TrelloCardLog(Base):
+    __tablename__ = "trello_card_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    card_number = Column(Integer, nullable=False)
+    assistant_messages = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

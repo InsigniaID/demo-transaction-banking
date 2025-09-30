@@ -633,7 +633,7 @@ async def create_corporate_transaction(
 
 
 @router.post("/anomaly-detection")
-async def anomaly_detection(result: DetectionResult):
+async def anomaly_detection(result: DetectionResult, db: Session = Depends(get_db)):
     def remove_empty_fields(obj):
         if isinstance(obj, dict):
             return {k: remove_empty_fields(v) for k, v in obj.items() if v not in [None, ""]}
@@ -656,7 +656,7 @@ async def anomaly_detection(result: DetectionResult):
         event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
 
         # await send_transaction(event_data)
-        await FoundryAnalytics.foundry_processing(event_data)
+        await FoundryAnalytics.foundry_processing(event_data, db)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing error: {e}")

@@ -8,14 +8,12 @@ from decouple import config
 
 from app.kafka_producer import send_transaction
 from app.schemas import StandardKafkaEvent
-from .ticketing_trello_service import TrelloClient
+from .ticketing_trello_service import TrelloClient, get_next_card_number_and_log
 
-
-card_counter = 0
 
 class FoundryAnalytics:
     @staticmethod
-    async def foundry_processing(data):
+    async def foundry_processing(data, db):
         project = AIProjectClient(credential=DefaultAzureCredential(), endpoint=config('ENDPOINT_FOUNDRY'))
         agent = project.agents.get_agent(config("AGENT"))
         thread = project.agents.threads.create()
@@ -60,10 +58,9 @@ class FoundryAnalytics:
                                                sanction_screening_result=json.dumps(assistant_messages))
             event_data = success_event.model_dump(exclude_none=True)
             event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
-            global card_counter
-            card_counter += 1
+            next_number = get_next_card_number_and_log(db, str(assistant_messages))
             list_id = config("TRELLO_LIST_ID")
-            name = f"Card #{card_counter}"
+            name = f"Banking Ticket #{next_number}"
             api_key = config("TRELLO_API_KEY")
             token = config("TRELLO_TOKEN")
 

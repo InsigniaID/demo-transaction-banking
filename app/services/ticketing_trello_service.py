@@ -1,7 +1,10 @@
 import requests
+from sqlalchemy.orm import Session
 import json
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
+
+from app.models import TrelloCardSequence, TrelloCardLog
 
 
 class TrelloClient:
@@ -117,3 +120,26 @@ class TrelloClient:
 
 
 print("✅ TrelloClient class defined")
+
+def get_next_card_number_and_log(db: Session, assistant_messages: str) -> int:
+    seq = db.query(TrelloCardSequence).first()
+    if not seq:
+        seq = TrelloCardSequence(last_number=1)
+        db.add(seq)
+        db.commit()
+        db.refresh(seq)
+        next_number = seq.last_number
+    else:
+        seq.last_number += 1
+        db.commit()
+        db.refresh(seq)
+        next_number = seq.last_number
+
+    log = TrelloCardLog(
+        card_number=next_number,
+        assistant_messages=assistant_messages
+    )
+    db.add(log)
+    db.commit()
+
+    return next_number
