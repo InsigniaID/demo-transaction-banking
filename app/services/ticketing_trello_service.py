@@ -60,7 +60,7 @@ class TrelloClient:
         else:
             query["desc"] = "📎 Full analysis attached as .txt (too long for Trello desc)."
 
-        response = requests.post(url, params=query)
+        response = requests.post(url, data=query)
         if response.status_code == 200:
             card = response.json()
             print(f"✅ Card created: {card['name']}")
