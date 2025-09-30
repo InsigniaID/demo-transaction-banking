@@ -8,7 +8,10 @@ from decouple import config
 
 from app.kafka_producer import send_transaction
 from app.schemas import StandardKafkaEvent
+from .ticketing_trello_service import TrelloClient
 
+
+card_counter = 0
 
 class FoundryAnalytics:
     @staticmethod
@@ -57,8 +60,15 @@ class FoundryAnalytics:
                                                sanction_screening_result=json.dumps(assistant_messages))
             event_data = success_event.model_dump(exclude_none=True)
             event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
+            global card_counter
+            card_counter += 1
+            list_id = config("TRELLO_LIST_ID")
+            name = f"Card #{card_counter}"
+            api_key = config("TRELLO_API_KEY")
+            token = config("TRELLO_TOKEN")
 
             await send_transaction(event_data)
+            TrelloClient(api_key, token).create_card(list_id=list_id, name=name, desc=str(assistant_messages))
 
             for message in messages:
                 print(f"\n{message.role.upper()}:")
