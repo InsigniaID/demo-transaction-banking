@@ -68,7 +68,7 @@ class FoundryAnalytics:
             token = config("TRELLO_TOKEN")
 
             await send_transaction(event_data)
-            await TrelloClient(api_key, token).create_card(list_id=list_id, name=name, desc=str(assistant_messages))
+            TrelloClient(api_key, token).create_card(list_id=list_id, name=name, desc=str(assistant_messages))
 
             for message in messages:
                 print(f"\n{message.role.upper()}:")
