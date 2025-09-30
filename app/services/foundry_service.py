@@ -56,16 +56,17 @@ class FoundryAnalytics:
                                                processing_time_ms=int(datetime.utcnow().timestamp() * 1000) % 1000,
                                                aml_screening_result=json.dumps(data),
                                                sanction_screening_result=json.dumps(assistant_messages))
+            human_friendly = "\n\n".join(assistant_messages)
             event_data = success_event.model_dump(exclude_none=True)
             event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
-            next_number = get_next_card_number_and_log(db, str(assistant_messages))
+            next_number = get_next_card_number_and_log(db, human_friendly)
             list_id = config("TRELLO_LIST_ID")
             name = f"Banking Ticket #{next_number}"
             api_key = config("TRELLO_API_KEY")
             token = config("TRELLO_TOKEN")
 
             await send_transaction(event_data)
-            TrelloClient(api_key, token).create_card(list_id=list_id, name=name, desc=str(assistant_messages))
+            TrelloClient(api_key, token).create_card(list_id=list_id, name=name, desc=human_friendly)
 
             for message in messages:
                 print(f"\n{message.role.upper()}:")
