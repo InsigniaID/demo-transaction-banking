@@ -155,7 +155,7 @@ class PINValidationService:
 
             # Raise exception with message ada attempt
             raise HTTPException(
-                status_code=401,
+                status_code=400,
                 detail={
                     "error": "Invalid PIN",
                     "message": f"The provided PIN is incorrect. Attempt {failed_attempts}"

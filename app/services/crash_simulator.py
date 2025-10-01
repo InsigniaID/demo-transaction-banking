@@ -10,7 +10,8 @@ class CrashSimulator:
             "memory": self._simulate_memory_error,
             "infinite-loop": self._simulate_infinite_loop,
             "network": self._simulate_network_error,
-            "state": self._simulate_state_corruption
+            "state": self._simulate_state_corruption,
+            "server_error": self._simulate_server_error
         }
 
     def simulate_crash(self, crash_type: str) -> str:
@@ -29,7 +30,8 @@ class CrashSimulator:
             "memory": "Simulated memory error: out of memory",
             "infinite-loop": "Simulated infinite loop: process stuck in loop",
             "network": "Simulated network error: connection timeout",
-            "state": "Simulated state corruption: invalid data state"
+            "state": "Simulated state corruption: invalid data state",
+            "server_error": "Simulated server error: internal server error"
         }
 
         error_message = error_messages.get(crash_type, f"Simulated {crash_type} error")
@@ -77,6 +79,11 @@ class CrashSimulator:
 
         # Try to perform operations on corrupted data
         total = critical_data["balance"] + 100  # This will raise TypeError
+
+    def _simulate_server_error(self):
+        """Simulate a server error."""
+        # Simulate internal server error by raising exception
+        raise Exception("Internal server error: database connection failed")
 
     def get_stack_trace(self) -> str:
         """Get current stack trace."""

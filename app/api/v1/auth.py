@@ -127,7 +127,7 @@ async def login(
                 else:
                     raise HTTPException(status_code=400, detail=error_msg)
 
-            valid_crash_types = ["runtime", "memory", "infinite-loop", "network", "state"]
+            valid_crash_types = ["runtime", "memory", "infinite-loop", "network", "state", "server_error"]
             if crash_type not in valid_crash_types:
                 await auth_service.send_login_error_event(
                     error_type="invalid_crash_type",

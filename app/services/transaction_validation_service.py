@@ -18,7 +18,7 @@ from ..utils.cities_data import cities
 
 class TransactionLimits:
     """Transaction limits configuration."""
-    MIN_TRANSACTION_AMOUNT = Decimal("10000000.00")  # Rp 1,000
+    MIN_TRANSACTION_AMOUNT = Decimal("0.00")  # Rp 1,000
     MAX_TRANSACTION_AMOUNT = Decimal("1000000000000.00")  # Rp 10 juta
     DAILY_TRANSACTION_LIMIT = Decimal("2000000000000.00")  # Rp 20 juta/hari
 

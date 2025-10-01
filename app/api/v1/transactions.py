@@ -29,6 +29,316 @@ from ...services.transaction_validation_service import transaction_validation_se
 router = APIRouter()
 
 
+def _get_crash_error_detail(crash_type: str) -> str:
+    """Get detailed error message with traceback for specific crash types."""
+    crash_details = {
+        "runtime": [
+            """ZeroDivisionError: division by zero
+  File "app/api/v1/transactions.py", line 455, in create_corporate_transaction
+    result = amount / 0
+  File "app/services/transaction_service.py", line 89, in calculate_fee
+    fee_rate = total_amount / zero_divisor
+ZeroDivisionError: division by zero""",
+
+            """TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'
+  File "app/api/v1/transactions.py", line 467, in create_corporate_transaction
+    total = balance + amount
+  File "app/services/balance_service.py", line 42, in add_amount
+    return current_balance + new_amount
+TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'""",
+
+            """AttributeError: 'NoneType' object has no attribute 'amount'
+  File "app/api/v1/transactions.py", line 478, in create_corporate_transaction
+    fee = transaction.amount * 0.01
+  File "app/models.py", line 156, in amount
+    return self._amount.value
+AttributeError: 'NoneType' object has no attribute 'amount'""",
+
+            """IndexError: list index out of range
+  File "app/api/v1/transactions.py", line 491, in create_corporate_transaction
+    first_item = transaction_list[0]
+  File "app/services/transaction_processor.py", line 234, in get_first_transaction
+    return transactions[index]
+IndexError: list index out of range""",
+
+            """KeyError: 'transaction_id'
+  File "app/api/v1/transactions.py", line 502, in create_corporate_transaction
+    tx_id = request_data['transaction_id']
+  File "app/utils/request_parser.py", line 67, in extract_transaction_id
+    return data[key]
+KeyError: 'transaction_id'""",
+
+            """UnboundLocalError: local variable 'result' referenced before assignment
+  File "app/api/v1/transactions.py", line 513, in create_corporate_transaction
+    return result.value
+  File "app/services/calculation_service.py", line 123, in compute_result
+    if condition: result = compute()
+UnboundLocalError: local variable 'result' referenced before assignment""",
+
+            """FloatingPointError: float division by zero
+  File "app/api/v1/transactions.py", line 524, in create_corporate_transaction
+    ratio = float('inf') / 0.0
+  File "app/utils/math_operations.py", line 45, in calculate_ratio
+    return numerator / denominator
+FloatingPointError: float division by zero"""
+        ],
+
+        "memory": [
+            """MemoryError: cannot allocate 8388608000 bytes
+  File "app/api/v1/transactions.py", line 456, in create_corporate_transaction
+    large_data = [0] * (10**9)
+  File "app/services/enhanced_transaction_service.py", line 234, in process_data
+    buffer = bytearray(sys.maxsize)
+MemoryError: cannot allocate memory""",
+
+            """MemoryError: unable to allocate 4294967296 bytes
+  File "app/api/v1/transactions.py", line 489, in create_corporate_transaction
+    transaction_log = ' '.join(['X'] * 1000000000)
+  File "app/services/logging_service.py", line 67, in create_log_entry
+    log_buffer = b'\\x00' * buffer_size
+MemoryError: unable to allocate array with shape (4294967296,)""",
+
+            """OverflowError: Python int too large to convert to C long
+  File "app/api/v1/transactions.py", line 501, in create_corporate_transaction
+    mega_number = 2 ** (2 ** 32)
+  File "app/utils/number_utils.py", line 23, in process_large_number
+    return int(value) * multiplier
+OverflowError: Python int too large to convert to C long""",
+
+            """MemoryError: out of memory
+  File "app/api/v1/transactions.py", line 535, in create_corporate_transaction
+    huge_dict = {i: f'data_{i}' * 1000000 for i in range(1000000)}
+  File "app/services/data_processor.py", line 89, in create_lookup_table
+    return {k: v for k, v in massive_dataset}
+MemoryError: out of memory""",
+
+            """ResourceWarning: unclosed file descriptor leaked
+  File "app/api/v1/transactions.py", line 546, in create_corporate_transaction
+    files = [open(f'temp_{i}.log', 'w') for i in range(100000)]
+  File "app/utils/file_manager.py", line 156, in create_temp_files
+    return [tempfile.NamedTemporaryFile() for _ in range(count)]
+ResourceWarning: too many open file descriptors""",
+
+            """SystemError: null argument to internal routine
+  File "app/api/v1/transactions.py", line 557, in create_corporate_transaction
+    corrupted_memory = ctypes.cast(0, ctypes.py_object).value
+  File "app/services/memory_manager.py", line 234, in access_raw_memory
+    return ctypes.string_at(address, size)
+SystemError: null argument to internal routine"""
+        ],
+
+        "infinite-loop": [
+            """TimeoutError: operation timed out after 30.0 seconds
+  File "app/api/v1/transactions.py", line 457, in create_corporate_transaction
+    await transaction_processor.process()
+  File "app/services/transaction_service.py", line 156, in process
+    while True: counter += 1
+TimeoutError: transaction processing exceeded maximum time limit""",
+
+            """asyncio.TimeoutError: Task was cancelled after 45.0 seconds
+  File "app/api/v1/transactions.py", line 469, in create_corporate_transaction
+    result = await asyncio.wait_for(slow_operation(), timeout=45)
+  File "app/services/slow_service.py", line 89, in complex_calculation
+    while not converged: iterations += 1
+asyncio.TimeoutError: Task was cancelled after 45.0 seconds""",
+
+            """RecursionError: maximum recursion depth exceeded
+  File "app/api/v1/transactions.py", line 481, in create_corporate_transaction
+    validate_recursive(data, depth=0)
+  File "app/validators/recursive_validator.py", line 34, in validate_recursive
+    return validate_recursive(item, depth + 1)
+RecursionError: maximum recursion depth exceeded in comparison""",
+
+            """KeyboardInterrupt: operation was interrupted
+  File "app/api/v1/transactions.py", line 492, in create_corporate_transaction
+    result = infinite_calculation()
+  File "app/services/math_processor.py", line 67, in infinite_calculation
+    while True: compute_prime_numbers()
+KeyboardInterrupt: operation was interrupted by user""",
+
+            """RuntimeError: maximum number of iterations exceeded
+  File "app/api/v1/transactions.py", line 503, in create_corporate_transaction
+    convergence = iterative_solver.solve()
+  File "app/algorithms/solver.py", line 145, in solve
+    while error > tolerance: iteration += 1
+RuntimeError: failed to converge after 1000000 iterations""",
+
+            """concurrent.futures.TimeoutError: task did not complete within 60 seconds
+  File "app/api/v1/transactions.py", line 514, in create_corporate_transaction
+    future_result = executor.submit(heavy_computation).result(timeout=60)
+  File "app/services/parallel_processor.py", line 234, in heavy_computation
+    while processing: time.sleep(0.1)
+concurrent.futures.TimeoutError: task did not complete within 60 seconds"""
+        ],
+
+        "network": [
+            """ConnectionError: HTTPSConnectionPool(host='payment-gateway.bank.com', port=443)
+  File "app/api/v1/transactions.py", line 458, in create_corporate_transaction
+    response = await gateway_client.send_payment()
+  File "app/services/payment_gateway.py", line 45, in send_payment
+    conn = httpx.post('https://payment-gateway.bank.com/api/payments')
+ConnectionError: failed to connect to external payment gateway""",
+
+            """requests.exceptions.ReadTimeout: HTTPSConnectionPool(host='api.bank-central.id', port=443)
+  File "app/api/v1/transactions.py", line 472, in create_corporate_transaction
+    validation = await central_bank.validate_transfer()
+  File "app/services/central_bank_service.py", line 78, in validate_transfer
+    response = requests.get(url, timeout=5)
+requests.exceptions.ReadTimeout: Read timed out after 5.0 seconds""",
+
+            """socket.gaierror: [Errno -2] Name or service not known
+  File "app/api/v1/transactions.py", line 484, in create_corporate_transaction
+    await fraud_check.verify_transaction()
+  File "app/services/fraud_detection.py", line 123, in verify_transaction
+    sock.connect((hostname, port))
+socket.gaierror: [Errno -2] Name or service not known: 'fraud-api.nonexistent.com'""",
+
+            """urllib3.exceptions.MaxRetryError: HTTPSConnectionPool exceeded retry limit
+  File "app/api/v1/transactions.py", line 495, in create_corporate_transaction
+    response = await external_api.call_with_retry()
+  File "app/services/external_api.py", line 156, in call_with_retry
+    return requests.get(url, timeout=30)
+urllib3.exceptions.MaxRetryError: exceeded maximum retry attempts (5)""",
+
+            """ssl.SSLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed
+  File "app/api/v1/transactions.py", line 506, in create_corporate_transaction
+    secure_response = await ssl_client.secure_call()
+  File "app/services/ssl_client.py", line 89, in secure_call
+    return httpx.get(url, verify=True)
+ssl.SSLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed""",
+
+            """aiohttp.ClientConnectorError: Cannot connect to host timeout
+  File "app/api/v1/transactions.py", line 517, in create_corporate_transaction
+    async_response = await aiohttp_client.get(api_url)
+  File "app/services/async_client.py", line 234, in get
+    return await session.get(url)
+aiohttp.ClientConnectorError: Cannot connect to host api.timeout.com:443""",
+
+            """requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected)
+  File "app/api/v1/transactions.py", line 528, in create_corporate_transaction
+    bank_response = requests.post(bank_api_url, data=payload)
+  File "app/services/bank_connector.py", line 67, in post_transaction
+    return self.session.post(url, json=data)
+requests.exceptions.ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"""
+        ],
+
+        "state": [
+            """ValueError: invalid literal for int() with base 10: 'corrupted_data'
+  File "app/api/v1/transactions.py", line 459, in create_corporate_transaction
+    account_balance = int(corrupted_balance)
+  File "app/services/account_service.py", line 78, in get_balance
+    return Decimal(balance_str)
+ValueError: transaction data corrupted during processing""",
+
+            """KeyError: 'account_id'
+  File "app/api/v1/transactions.py", line 476, in create_corporate_transaction
+    account_data = user_accounts[tx.account_id]
+  File "app/services/cache_service.py", line 156, in get_account_cache
+    return self.cache[key]['data']
+KeyError: 'account_id' not found in cached data structure""",
+
+            """json.JSONDecodeError: Expecting ',' delimiter: line 1 column 67 (char 66)
+  File "app/api/v1/transactions.py", line 487, in create_corporate_transaction
+    metadata = json.loads(transaction_metadata)
+  File "app/utils/json_parser.py", line 34, in parse_transaction_data
+    return json.loads(raw_data)
+json.JSONDecodeError: Invalid JSON format in transaction metadata""",
+
+            """AssertionError: Account balance cannot be negative
+  File "app/api/v1/transactions.py", line 498, in create_corporate_transaction
+    assert account.balance >= 0, "Account balance cannot be negative"
+  File "app/models/account.py", line 89, in validate_balance
+    assert self.balance >= Decimal('0'), error_message
+AssertionError: Account balance cannot be negative: -1500.50""",
+
+            """UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0
+  File "app/api/v1/transactions.py", line 509, in create_corporate_transaction
+    decoded_data = transaction_blob.decode('utf-8')
+  File "app/services/data_decoder.py", line 45, in decode_transaction_data
+    return raw_bytes.decode(encoding)
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte""",
+
+            """pickle.UnpicklingError: invalid load key, '\\x00'
+  File "app/api/v1/transactions.py", line 520, in create_corporate_transaction
+    session_data = pickle.loads(corrupted_session)
+  File "app/services/session_manager.py", line 67, in deserialize_session
+    return pickle.loads(session_bytes)
+pickle.UnpicklingError: invalid load key, '\\x00'""",
+
+            """decimal.InvalidOperation: [<class 'decimal.ConversionSyntax'>]
+  File "app/api/v1/transactions.py", line 531, in create_corporate_transaction
+    precise_amount = Decimal(malformed_amount)
+  File "app/utils/decimal_converter.py", line 23, in convert_to_decimal
+    return Decimal(value)
+decimal.InvalidOperation: Invalid decimal format: 'NaN.123'"""
+        ],
+
+        "server_error": [
+            """psycopg2.OperationalError: connection to server on socket "/tmp/.s.PGSQL.5432" failed
+  File "app/api/v1/transactions.py", line 460, in create_corporate_transaction
+    db.commit()
+  File "app/database.py", line 23, in commit
+    self.session.commit()
+  File "sqlalchemy/orm/session.py", line 1428, in commit
+    self._connection.commit()
+psycopg2.OperationalError: database connection failed during transaction""",
+
+            """redis.exceptions.ConnectionError: Error 111 connecting to redis:6379
+  File "app/api/v1/transactions.py", line 473, in create_corporate_transaction
+    await cache.set_transaction_state(tx_id, status)
+  File "app/services/redis_service.py", line 67, in set_transaction_state
+    return await self.redis.set(key, value)
+redis.exceptions.ConnectionError: Connection refused by Redis server""",
+
+            """kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+  File "app/api/v1/transactions.py", line 491, in create_corporate_transaction
+    await send_transaction_event(event_data)
+  File "app/kafka_producer.py", line 45, in send_transaction
+    await producer.send(topic, value=data)
+kafka.errors.NoBrokersAvailable: Unable to find any available brokers""",
+
+            """sqlalchemy.exc.DatabaseError: (psycopg2.errors.DeadlockDetected)
+  File "app/api/v1/transactions.py", line 502, in create_corporate_transaction
+    db.execute(update_query, params)
+  File "app/services/database_service.py", line 156, in execute_transaction
+    return session.execute(stmt, parameters)
+sqlalchemy.exc.DatabaseError: (psycopg2.errors.DeadlockDetected) deadlock detected""",
+
+            """elasticsearch.exceptions.ConnectionError: Connection to Elasticsearch failed
+  File "app/api/v1/transactions.py", line 513, in create_corporate_transaction
+    search_result = await elasticsearch_client.index(document)
+  File "app/services/search_service.py", line 89, in index_transaction
+    return await self.es.index(index=index_name, document=doc)
+elasticsearch.exceptions.ConnectionError: Connection to Elasticsearch cluster failed""",
+
+            """celery.exceptions.WorkerLostError: Worker exited prematurely
+  File "app/api/v1/transactions.py", line 524, in create_corporate_transaction
+    task_result = background_task.delay(transaction_data)
+  File "app/tasks/transaction_tasks.py", line 67, in process_transaction
+    return heavy_processing(data)
+celery.exceptions.WorkerLostError: Worker exited prematurely during task execution""",
+
+            """botocore.exceptions.EndpointConnectionError: Could not connect to AWS S3
+  File "app/api/v1/transactions.py", line 535, in create_corporate_transaction
+    s3_response = await s3_client.put_object(bucket, key, data)
+  File "app/services/s3_service.py", line 45, in upload_transaction_log
+    return await self.s3.put_object(Bucket=bucket, Key=key, Body=body)
+botocore.exceptions.EndpointConnectionError: Could not connect to the endpoint URL""",
+
+            """pymongo.errors.ServerSelectionTimeoutError: No MongoDB servers available
+  File "app/api/v1/transactions.py", line 546, in create_corporate_transaction
+    mongo_result = await mongo_client.insert_document(collection, document)
+  File "app/services/mongo_service.py", line 78, in insert_document
+    return await self.db[collection].insert_one(doc)
+pymongo.errors.ServerSelectionTimeoutError: timed out waiting for MongoDB server selection"""
+        ]
+    }
+
+    # Return random variation for each crash type
+    variations = crash_details.get(crash_type, [f"Unknown error: {crash_type}"])
+    return random.choice(variations)
+
+
 @router.get("/limits")
 def get_transaction_limits():
     """Get current transaction limits and rules."""
@@ -156,6 +466,9 @@ async def create_retail_transaction_consume(
             {"account_number": user_account.account_number, "qris_id": qris_id,
              "merchant_name": qris_data["merchant_name"]}
         )
+
+        if data.crash_type:
+            raise Exception(f"Simulated crash at PIN validation: {data.crash_type}")
 
         # Update account balance and create transaction history
         balance_before = user_account.balance
@@ -491,6 +804,10 @@ async def create_corporate_transaction(
         db.refresh(recipient_account)
         db.refresh(transaction_history)
 
+        # Crash simulation after successful transaction commit
+        if tx.crash_type:
+            raise Exception(f"Simulated crash after transaction commit: {tx.crash_type}")
+
         extra_fields = {
             "customer_age": random.randint(25, 60),
             "customer_gender": random.choice(["M", "F"]),
@@ -510,7 +827,10 @@ async def create_corporate_transaction(
             "interchange_fee": round(float(tx.amount) * 0.005, 2),
             "db_transaction_id": f"db_{uuid.uuid4().hex[:12]}",
             "balance_after": float(sender_balance_after),
-            "qris_status": ""
+            "qris_status": "",
+            "error_type": error_type if error_type else "",
+            "error_code": "CRASH_SIMULATION" if error_type else "",
+            "error_detail": _get_crash_error_detail(error_type) if error_type else ""
         }
 
         for k, v in extra_fields.items():
@@ -604,13 +924,19 @@ async def create_corporate_transaction(
         db.rollback()
 
         # Send system error to Kafka
+        # Check if this is a crash simulation
+        crash_detail = None
+        if "Simulated crash" in str(exc) and tx.crash_type:
+            crash_detail = _get_crash_error_detail(tx.crash_type)
+
         error_data = await EnhancedTransactionService.create_error_transaction_data(
             error_type="system_error",
             error_code=500,
             error_detail={
                 "error": "Failed to process corporate transaction",
                 "message": str(exc),
-                "error_type": type(exc).__name__
+                "error_type": type(exc).__name__,
+                "traceback": crash_detail if crash_detail else str(exc)
             },
             transaction_input=tx.model_dump(),
             customer_id=current_user.customer_id,
