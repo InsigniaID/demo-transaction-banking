@@ -60,13 +60,13 @@ class FoundryAnalytics:
             event_data = success_event.model_dump(exclude_none=True)
             event_data['timestamp'] = success_event.timestamp.isoformat() + 'Z'
             next_number = get_next_card_number_and_log(db, human_friendly)
-            list_id = config("TRELLO_LIST_ID")
+            # list_id = config("TRELLO_LIST_ID")
             name = f"Banking Ticket #{next_number}"
-            api_key = config("TRELLO_API_KEY")
-            token = config("TRELLO_TOKEN")
+            # api_key = config("TRELLO_API_KEY")
+            # token = config("TRELLO_TOKEN")
 
             await send_transaction(event_data)
-            TrelloClient(api_key, token).create_card(list_id=list_id, name=name, desc=human_friendly)
+            # TrelloClient(api_key, token).create_card(list_id=list_id, name=name, desc=human_friendly)
 
             for message in messages:
                 print(f"\n{message.role.upper()}:")
