@@ -48,15 +48,15 @@ async def sample_server(request: Request,
 
 
 @router.post("/trigger/disk-space")
-async def sample_disk_space():
-    return {"status": "success", "message": "disk-space"}
+async def sample_disk_space(request: Request):
+    return InfraServices.sample_disk_space(request)
 
 
 @router.post("/trigger/auto-restart")
-async def sample_disk_space():
-    return {"status": "success", "message": "auto-restart"}
+async def sample_auto_restart(request: Request):
+    return InfraServices.sample_auto_restart(request)
 
 
 @router.post("/trigger/auto-rollback")
-async def sample_disk_space():
-    return {"status": "success", "message": "auto-rollback"}
+async def sample_auto_rollback(request: Request):
+    return InfraServices.sample_auto_rollback(request)

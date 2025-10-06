@@ -1,5 +1,7 @@
+import random
+import requests
 from datetime import datetime, timezone
-
+from decouple import config
 from app import mqtt_client
 from app.schemas import StandardKafkaEvent
 
@@ -87,3 +89,113 @@ class InfraServices:
 
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
+
+
+    @staticmethod
+    def sample_disk_space(request):
+        try:
+            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                       log_type="disk_space",
+                                       alert_type=f"Disk usage{random.randint(76, 97)}%",
+                                       alert_severity="low",
+                                       customer_id="",
+                                       device_type="server",
+                                       ip_address=request.client.host,
+                                       user_agent=request.headers.get("user-agent"))
+
+            mqtt_client.publish("infra-banking", event.json(), qos=1)
+
+        except Exception as e:
+            return {"status": "error", "message": f"{str(e)}"}
+
+
+    @staticmethod
+    def sample_auto_restart(request):
+        try:
+            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                       log_type="auto_restart",
+                                       alert_type="Health check failed 3x",
+                                       alert_severity="medium",
+                                       customer_id="",
+                                       device_type="server",
+                                       ip_address=request.client.host,
+                                       user_agent=request.headers.get("user-agent"))
+
+            mqtt_client.publish("infra-banking", event.json(), qos=1)
+
+            base_url = config("EX_API_TX")
+
+            create_tx_url = f"{base_url}/api/transactions"
+            create_tx_payload = {
+                "userId": "user123",
+                "amount": 100.50,
+                "type": "credit",
+                "description": "Payment received"
+            }
+
+            tx_response = requests.post(create_tx_url,
+                                        headers={"Content-Type": "application/json"},
+                                        json=create_tx_payload,
+                                        timeout=10)
+            tx_response.raise_for_status()
+
+            mem_leak_url = f"{base_url}/api/oom/memory-leak"
+            mem_leak_params = {"iterations": 10}
+
+            leak_response = requests.post(mem_leak_url,
+                                          params=mem_leak_params,
+                                          timeout=10)
+            leak_response.raise_for_status()
+
+            return {
+                "status": "success",
+                "message": "Event published, transaction created, and memory leak triggered",
+                "transaction_response": tx_response.json(),
+                "memory_leak_response": leak_response.json(),
+            }
+
+        except requests.RequestException as e:
+            return {"status": "error", "message": f"External API request failed: {str(e)}"}
+
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
+
+    @staticmethod
+    def sample_auto_rollback(request):
+        try:
+            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
+                                       log_type="auto_rollback",
+                                       alert_type="critical bug",
+                                       alert_severity="high",
+                                       customer_id="",
+                                       device_type="server",
+                                       ip_address=request.client.host,
+                                       user_agent=request.headers.get("user-agent"))
+
+            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            deployment = "3.1.0"
+            namespace = "default"
+
+            url = f"{config("EXT_API_K8S")}/k8s/deployments/{deployment}/rollback"
+            params = {"namespace": namespace}
+
+            headers = {
+                "accept": "application/json",
+                "Authorization": f"Bearer {config('EXT_API_TOKEN')}"
+            }
+
+            response = requests.post(url, headers=headers, params=params, data="", timeout=15)
+            response.raise_for_status()
+
+            return {
+                "status": "success",
+                "message": "Event published and rollback triggered successfully",
+                "external_api_response": response.json(),
+            }
+
+        except requests.RequestException as e:
+            return {"status": "error", "message": f"External API request failed: {str(e)}"}
+
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
