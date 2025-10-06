@@ -45,3 +45,18 @@ async def sample_server(request: Request,
     InfraServices.data_security_ddos(request, current_user)
 
     return {"status": "success", "message": "ddos"}
+
+
+@router.post("/trigger/disk-space")
+async def sample_disk_space():
+    return {"status": "success", "message": "disk-space"}
+
+
+@router.post("/trigger/auto-restart")
+async def sample_disk_space():
+    return {"status": "success", "message": "auto-restart"}
+
+
+@router.post("/trigger/auto-rollback")
+async def sample_disk_space():
+    return {"status": "success", "message": "auto-rollback"}
