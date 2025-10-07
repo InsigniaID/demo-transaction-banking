@@ -107,6 +107,8 @@ class InfraServices:
 
             mqtt_client.publish("infra-banking", event.json(), qos=1)
 
+            return {"status": "success", "message": "Event disk_space published"}
+
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
 
