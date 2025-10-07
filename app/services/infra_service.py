@@ -131,7 +131,7 @@ class InfraServices:
 
             mqtt_client.publish("infra-banking", event.json(), qos=1)
 
-            base_url = config("EX_API_TX")
+            base_url = config("EXT_API_TX")
 
             create_tx_url = f"{base_url}/api/transactions"
             create_tx_payload = {
