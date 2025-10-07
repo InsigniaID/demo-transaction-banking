@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from decouple import config
 from app import mqtt_client
 from app.schemas import StandardKafkaEvent
+from ..utils.pod_namespace import k8s
 
 
 class InfraServices:
@@ -96,8 +97,9 @@ class InfraServices:
         try:
             event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
                                        log_type="disk_space",
-                                       alert_type=f"Disk usage{random.randint(76, 97)}%",
+                                       alert_type=f"Disk usage {random.randint(76, 97)}%",
                                        alert_severity="low",
+                                       error_detail="mh-smbcserver",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
@@ -111,11 +113,17 @@ class InfraServices:
 
     @staticmethod
     def sample_auto_restart(request):
+        sample_k8s = random.choice(k8s)
+
         try:
             event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
                                        log_type="auto_restart",
                                        alert_type="Health check failed 3x",
                                        alert_severity="medium",
+                                       error_detail=f"namespace: {sample_k8s['namespace']},"
+                                                    f" pod: {sample_k8s['name']},"
+                                                    " OutOfMemoryError"
+                                                    " limit memory on this pod 200mb",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
@@ -163,11 +171,17 @@ class InfraServices:
 
     @staticmethod
     def sample_auto_rollback(request):
+        sample_k8s = random.choice(k8s)
+
         try:
             event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
                                        log_type="auto_rollback",
                                        alert_type="critical bug",
                                        alert_severity="high",
+                                       error_detail=f"namespace: {sample_k8s['namespace']},"
+                                                    f" pod: {sample_k8s['name']},"
+                                                    " 100%_transaction_fail,"
+                                                    " error rate spikes from 2% to 45%",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
