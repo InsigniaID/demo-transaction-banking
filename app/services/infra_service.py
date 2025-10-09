@@ -188,8 +188,8 @@ class InfraServices:
                                        user_agent=request.headers.get("user-agent"))
 
             mqtt_client.publish("infra-banking", event.json(), qos=1)
-            deployment = "3.1.0"
-            namespace = "default"
+            deployment = "transaction-service"
+            namespace = "ai-ops"
 
             url = f"{config("EXT_API_K8S")}/k8s/deployments/{deployment}/rollback"
             params = {"namespace": namespace}
