@@ -97,9 +97,9 @@ class InfraServices:
         try:
             event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
                                        log_type="disk_space",
-                                       alert_type=f"Disk usage {random.randint(76, 97)}%",
+                                       alert_type=f"Disk usage above threshold",
                                        alert_severity="low",
-                                       error_detail="mh-smbcserver",
+                                       error_detail="happened at node: mh-smbcserver",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
@@ -125,7 +125,7 @@ class InfraServices:
                                        error_detail=f"namespace: {sample_k8s['namespace']},"
                                                     f" pod: {sample_k8s['name']},"
                                                     " OutOfMemoryError"
-                                                    " limit memory on this pod 200mb",
+                                                    " limit memory on this pod 512mb",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
@@ -182,8 +182,7 @@ class InfraServices:
                                        alert_severity="high",
                                        error_detail=f"namespace: {sample_k8s['namespace']},"
                                                     f" pod: {sample_k8s['name']},"
-                                                    " 100%_transaction_fail,"
-                                                    " error rate spikes from 2% to 45%",
+                                                    " service_cannot_startup",
                                        customer_id="",
                                        device_type="server",
                                        ip_address=request.client.host,
