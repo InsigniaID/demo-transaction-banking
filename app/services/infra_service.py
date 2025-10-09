@@ -115,27 +115,49 @@ class InfraServices:
 
     @staticmethod
     def sample_auto_restart(request):
-        sample_k8s = random.choice(k8s)
-
         try:
-            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
-                                       log_type="auto_restart",
-                                       alert_type="Health check failed 3x",
-                                       alert_severity="medium",
-                                       error_detail=f"namespace: {sample_k8s['namespace']},"
-                                                    f" pod: {sample_k8s['name']},"
-                                                    " OutOfMemoryError"
-                                                    " limit memory on this pod 512mb",
-                                       customer_id="",
-                                       device_type="server",
-                                       ip_address=request.client.host,
-                                       user_agent=request.headers.get("user-agent"))
+            base_url = config("EXT_API_K8S")
+            namespace = "ai-ops"
+            pods_url = f"{base_url}/k8s/pods"
+            headers = {
+                "accept": "application/json",
+                "Authorization": f"Bearer {config('EXT_API_TOKEN')}"
+            }
+            params = {"namespace": namespace}
+
+            resp = requests.get(pods_url, headers=headers, params=params, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+
+            pods = data.get("pods", [])
+            filtered_pods = [p for p in pods if "transaction-service" in p["name"]]
+
+            if not filtered_pods:
+                return {"status": "error", "message": "No matching pods found for 'transaction-service'"}
+
+            sample_k8s = random.choice(filtered_pods)
+
+            event = StandardKafkaEvent(
+                timestamp=datetime.now(timezone.utc),
+                log_type="auto_restart",
+                alert_type="Health check failed 3x",
+                alert_severity="medium",
+                error_detail=(
+                    f"namespace: {sample_k8s['namespace']}, "
+                    f"pod: {sample_k8s['name']}, "
+                    "OutOfMemoryError - limit memory on this pod 512mb"
+                ),
+                customer_id="",
+                device_type="server",
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent")
+            )
 
             mqtt_client.publish("infra-banking", event.json(), qos=1)
 
-            base_url = config("EXT_API_TX")
+            tx_base = config("EXT_API_TX")
 
-            create_tx_url = f"{base_url}/api/transactions"
+            create_tx_url = f"{tx_base}/api/transactions"
             create_tx_payload = {
                 "userId": "user123",
                 "amount": 100.50,
@@ -143,23 +165,23 @@ class InfraServices:
                 "description": "Payment received"
             }
 
-            tx_response = requests.post(create_tx_url,
-                                        headers={"Content-Type": "application/json"},
-                                        json=create_tx_payload,
-                                        timeout=10)
+            tx_response = requests.post(
+                create_tx_url,
+                headers={"Content-Type": "application/json"},
+                json=create_tx_payload,
+                timeout=10
+            )
             tx_response.raise_for_status()
 
-            mem_leak_url = f"{base_url}/api/oom/memory-leak"
-            mem_leak_params = {"iterations": 10}
-
-            leak_response = requests.post(mem_leak_url,
-                                          params=mem_leak_params,
-                                          timeout=10)
+            mem_leak_url = f"{base_url}/api/oom/trigger"
+            mem_leak_params = {"mode": "fast"}
+            leak_response = requests.post(mem_leak_url, params=mem_leak_params, timeout=15)
             leak_response.raise_for_status()
 
             return {
                 "status": "success",
                 "message": "Event published, transaction created, and memory leak triggered",
+                "selected_pod": sample_k8s,
                 "transaction_response": tx_response.json(),
                 "memory_leak_response": leak_response.json(),
             }
@@ -173,40 +195,63 @@ class InfraServices:
 
     @staticmethod
     def sample_auto_rollback(request):
-        sample_k8s = random.choice(k8s)
-
         try:
-            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
-                                       log_type="auto_rollback",
-                                       alert_type="critical bug",
-                                       alert_severity="high",
-                                       error_detail=f"namespace: {sample_k8s['namespace']},"
-                                                    f" pod: {sample_k8s['name']},"
-                                                    " service_cannot_startup",
-                                       customer_id="",
-                                       device_type="server",
-                                       ip_address=request.client.host,
-                                       user_agent=request.headers.get("user-agent"))
-
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
-            deployment = "transaction-service"
+            base_url = config("EXT_API_K8S")
             namespace = "ai-ops"
-
-            url = f"{config("EXT_API_K8S")}/k8s/deployments/{deployment}/rollback"
-            params = {"namespace": namespace}
-
+            pods_url = f"{base_url}/k8s/pods"
             headers = {
                 "accept": "application/json",
                 "Authorization": f"Bearer {config('EXT_API_TOKEN')}"
             }
+            params = {"namespace": namespace}
 
-            response = requests.post(url, headers=headers, params=params, data="", timeout=15)
+            resp = requests.get(pods_url, headers=headers, params=params, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+
+            pods = data.get("pods", [])
+            filtered_pods = [p for p in pods if "transaction-service" in p["name"]]
+
+            if not filtered_pods:
+                return {"status": "error", "message": "No matching pods found for 'transaction-service'"}
+
+            sample_k8s = random.choice(filtered_pods)
+
+            event = StandardKafkaEvent(
+                timestamp=datetime.now(timezone.utc),
+                log_type="auto_rollback",
+                alert_type="critical bug",
+                alert_severity="high",
+                error_detail=(
+                    f"namespace: {sample_k8s['namespace']}, "
+                    f"pod: {sample_k8s['name']}, "
+                    "service_cannot_startup"
+                ),
+                customer_id="",
+                device_type="server",
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent")
+            )
+
+            mqtt_client.publish("infra-banking", event.json(), qos=1)
+
+            deployment = "transaction-service"
+            rollback_url = f"{base_url}/k8s/deployments/{deployment}/rollback"
+
+            response = requests.post(
+                rollback_url,
+                headers=headers,
+                params={"namespace": namespace},
+                data="",
+                timeout=15
+            )
             response.raise_for_status()
 
             return {
                 "status": "success",
                 "message": "Event published and rollback triggered successfully",
                 "external_api_response": response.json(),
+                "selected_pod": sample_k8s
             }
 
         except requests.RequestException as e:
