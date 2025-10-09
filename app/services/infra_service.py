@@ -107,6 +107,8 @@ class InfraServices:
 
             mqtt_client.publish("infra-banking", event.json(), qos=1)
 
+            return {"status": "success", "message": "Event disk_space published"}
+
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
 
@@ -131,7 +133,7 @@ class InfraServices:
 
             mqtt_client.publish("infra-banking", event.json(), qos=1)
 
-            base_url = config("EX_API_TX")
+            base_url = config("EXT_API_TX")
 
             create_tx_url = f"{base_url}/api/transactions"
             create_tx_payload = {
