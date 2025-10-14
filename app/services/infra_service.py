@@ -117,6 +117,7 @@ class InfraServices:
     def sample_auto_restart(request):
         try:
             base_url = config("EXT_API_K8S")
+            tx_url = config("EXT_API_TX")
             namespace = "ai-ops"
             pods_url = f"{base_url}/k8s/pods"
             headers = {
@@ -173,7 +174,7 @@ class InfraServices:
             )
             tx_response.raise_for_status()
 
-            mem_leak_url = f"{base_url}/api/oom/trigger"
+            mem_leak_url = f"{tx_url}/health/toggle"
             mem_leak_params = {"mode": "fast"}
             leak_response = requests.post(mem_leak_url, params=mem_leak_params, timeout=15)
             leak_response.raise_for_status()
