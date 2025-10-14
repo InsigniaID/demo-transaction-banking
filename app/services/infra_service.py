@@ -95,19 +95,60 @@ class InfraServices:
     @staticmethod
     def sample_disk_space(request):
         try:
-            event = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
-                                       log_type="disk_space",
-                                       alert_type=f"Disk usage above threshold",
-                                       alert_severity="low",
-                                       error_detail="happened at node: mh-smbcserver",
-                                       customer_id="",
-                                       device_type="server",
-                                       ip_address=request.client.host,
-                                       user_agent=request.headers.get("user-agent"))
+            base_url = config("EXT_API_K8S")
+            node_name = "mh-smbcserver"
+            disk_usage_url = f"{base_url}/k8s/nodes/{node_name}/disk-usage"
+            headers = {
+                "accept": "application/json",
+                "Authorization": f"Bearer {config('EXT_API_TOKEN')}"
+            }
+
+            # Get disk usage from external API
+            resp = requests.get(disk_usage_url, headers=headers, timeout=15)
+            resp.raise_for_status()
+            data = resp.json()
+
+            # Filter filesystem with mounted_on = "/"
+            filesystems = data.get("filesystems", [])
+            root_filesystem = next((fs for fs in filesystems if fs.get("mounted_on") == "/"), None)
+
+            if not root_filesystem:
+                return {"status": "error", "message": "Root filesystem (/) not found"}
+
+            # Extract disk usage information
+            disk_size = root_filesystem.get("size", "N/A")
+            disk_used = root_filesystem.get("used", "N/A")
+            disk_available = root_filesystem.get("available", "N/A")
+            disk_use_percent = root_filesystem.get("use_percent", "N/A")
+
+            event = StandardKafkaEvent(
+                timestamp=datetime.now(timezone.utc),
+                log_type="disk_space",
+                alert_type=f"Disk usage above threshold",
+                alert_severity="low",
+                error_detail=(
+                    f"happened at node: {node_name}, "
+                    f"size: {disk_size}, "
+                    f"used: {disk_used}, "
+                    f"available: {disk_available}, "
+                    f"usage: {disk_use_percent}"
+                ),
+                customer_id="",
+                device_type="server",
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent")
+            )
 
             mqtt_client.publish("infra-banking", event.json(), qos=1)
 
-            return {"status": "success", "message": "Event disk_space published"}
+            return {
+                "status": "success",
+                "message": "Event disk_space published",
+                "disk_info": root_filesystem
+            }
+
+        except requests.RequestException as e:
+            return {"status": "error", "message": f"External API request failed: {str(e)}"}
 
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
