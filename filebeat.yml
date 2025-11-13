@@ -1,15 +1,17 @@
 filebeat.inputs:
-- type: log
-  enabled: true
+- type: container
   paths:
     - /var/lib/docker/containers/*/*.log
-
-processors:
-  - add_host_metadata: ~
-  - add_docker_metadata: ~
+  processors:
+    - add_docker_metadata: ~
+    - decode_json_fields:
+        fields: ["message"]
+        target: "json"
 
 output.elasticsearch:
   hosts: ["http://109.123.234.206:9200"]
+  username: "elastic"
+  password: "insignia123"
 
 setup.kibana:
   host: "http://109.123.234.206:5601"
