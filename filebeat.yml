@@ -11,6 +11,8 @@ filebeat.inputs:
     - decode_json_fields:
         fields: ["message"]
         target: "json"
+    - drop_fields:
+        fields: ["agent", "ecs", "host", "input", "log.offset", "log.file.path"]
   multiline.pattern: '^\s'
   multiline.match: after
 
