@@ -1,7 +1,7 @@
 filebeat.inputs:
 - type: log
   paths:
-    - /var/lib/docker/containers/19d033b4612df90f50dea70ea4ebc6f75ac5365dc428f7b26dc52fd08e75688c/19d033b4612df90f50dea70ea4ebc6f75ac5365dc428f7b26dc52fd08e75688c-json.log
+    - /var/lib/docker/containers/4f9cfd65bcaa46bbacfda0989db4bec5f80360da5dde48260bd77eb27b634202/4f9cfd65bcaa46bbacfda0989db4bec5f80360da5dde48260bd77eb27b634202-json.log
   processors:
     - add_docker_metadata: ~
     - drop_event:
