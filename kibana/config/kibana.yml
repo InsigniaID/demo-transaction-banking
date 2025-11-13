@@ -4,4 +4,4 @@ xpack.reporting.encryptionKey: "P0kL6nR3sV9wX2bQ7yZ1dF8hT4mC5jAq"
 server.host: "0.0.0.0"
 elasticsearch.hosts: ["http://aiops-elasticsearch:9200"]
 elasticsearch.username: "kibana_system"
-elasticsearch.password: "bpn570YFbsSznSem2M3t"
+elasticsearch.password: "JwyJ3lnX5mQs3NV-7qxM"

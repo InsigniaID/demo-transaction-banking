@@ -57,7 +57,7 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://aiops-elasticsearch:9200
       - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=bpn570YFbsSznSem2M3t
+      - ELASTICSEARCH_PASSWORD=JwyJ3lnX5mQs3NV-7qxM
     ports:
       - "5601:5601"
     depends_on:
