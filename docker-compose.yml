@@ -56,7 +56,7 @@ services:
     container_name: aiops-kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://aiops-elasticsearch:9200
-      - ELASTICSEARCH_SERVICE_TOKEN=AAEAAWVsYXN0aWMva2liYW5hL3Rva2VuX3BKQ2dmSm9CeHBHb2FVWi1mb2plOlp0dDRKZkhtVExxSTZrLXl0eEZYWkE
+      - ELASTICSEARCH_SERVICE_TOKEN=AAEAAWVsYXN0aWMva2liYW5hL3Rva2VuX2Z1WFlmSm9CdkdWa3N5eGVDMkFGOlpuSTN3VzdpU21ldmtoNFlyMnB1M2c
     ports:
       - "5601:5601"
     depends_on:
