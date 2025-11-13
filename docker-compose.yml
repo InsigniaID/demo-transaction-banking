@@ -40,8 +40,8 @@ services:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
       - xpack.monitoring.enabled=true
       - ELASTICSEARCH_HOST=http://aiops-elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=LodplW_EZCRBo1E+f0tl
+      - ELASTICSEARCH_USERNAME=logstash_user
+      - ELASTICSEARCH_PASSWORD=logstashpass
     depends_on:
       - elasticsearch
     ports:
