@@ -1,7 +1,7 @@
 filebeat.inputs:
-- type: docker
-  containers.names:
-    - "demo-transaction-banking"
+- type: log
+  paths:
+    - /var/lib/docker/containers/*/*.log
   processors:
     - add_docker_metadata: ~
     - decode_json_fields:
