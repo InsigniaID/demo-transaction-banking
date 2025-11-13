@@ -1,0 +1,8 @@
+filebeat.inputs:
+- type: docker
+  containers.ids: '*'
+  processors:
+    - add_docker_metadata: ~
+
+output.logstash:
+  hosts: ["http://109.123.234.206:5044"]
