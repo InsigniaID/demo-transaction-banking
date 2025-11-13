@@ -3,7 +3,8 @@ import random
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from ..kafka_producer import send_transaction
+# from ..kafka_producer import send_transaction
+from ..elk_kafka import send_transaction
 from ..utils.cities_data import cities
 
 

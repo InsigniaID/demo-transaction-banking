@@ -4,7 +4,8 @@ import uuid
 from typing import Dict, List, Optional
 from sqlalchemy.orm import Session
 from ..utils.cities_data import cities
-from ..kafka_producer import send_transaction
+# from ..kafka_producer import send_transaction
+from ..elk_kafka import send_transaction
 from ..models import User
 from ..schemas import (
     StandardKafkaEvent, LocationInfo, SuspiciousActivity

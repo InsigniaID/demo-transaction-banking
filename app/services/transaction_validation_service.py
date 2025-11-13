@@ -11,7 +11,8 @@ from sqlalchemy import func, and_
 from fastapi import HTTPException
 
 from ..models import Account, TransactionHistory, User
-from ..kafka_producer import send_transaction
+# from ..kafka_producer import send_transaction
+from ..elk_kafka import send_transaction
 from ..schemas import StandardKafkaEvent
 from ..utils.cities_data import cities
 

@@ -7,7 +7,8 @@ from .crash_simulator import crash_simulator
 from ..models import User
 from ..schemas import StandardKafkaEvent
 from ..security import verify_pin
-from ..kafka_producer import send_transaction
+# from ..kafka_producer import send_transaction
+from ..elk_kafka import send_transaction
 from ..utils.cities_data import cities
 
 

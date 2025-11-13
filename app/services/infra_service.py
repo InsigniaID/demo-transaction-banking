@@ -2,7 +2,8 @@ import random
 import requests
 from datetime import datetime, timezone
 from decouple import config
-from app import mqtt_client
+# from app import mqtt_client
+from app import elk_mqtt
 from app.schemas import StandardKafkaEvent
 from ..utils.pod_namespace import k8s
 
@@ -19,7 +20,8 @@ class InfraServices:
                                        ip_address=request.client.host,
                                        user_agent=request.headers.get("user-agent"))
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
@@ -35,7 +37,8 @@ class InfraServices:
                                        ip_address=request.client.host,
                                        user_agent=request.headers.get("user-agent"))
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
@@ -52,7 +55,8 @@ class InfraServices:
                                        ip_address=request.client.host,
                                        user_agent=request.headers.get("user-agent"))
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
@@ -69,7 +73,8 @@ class InfraServices:
                                        ip_address=request.client.host,
                                        user_agent=request.headers.get("user-agent"))
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
@@ -86,7 +91,8 @@ class InfraServices:
                                        ip_address=request.client.host,
                                        user_agent=request.headers.get("user-agent"))
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
         except Exception as e:
             return {"status": "error", "message": f"{str(e)}"}
@@ -139,7 +145,8 @@ class InfraServices:
                 user_agent=request.headers.get("user-agent")
             )
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
             return {
                 "status": "success",
@@ -195,7 +202,8 @@ class InfraServices:
                 user_agent=request.headers.get("user-agent")
             )
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
             tx_base = config("EXT_API_TX")
 
@@ -275,7 +283,8 @@ class InfraServices:
                 user_agent=request.headers.get("user-agent")
             )
 
-            mqtt_client.publish("infra-banking", event.json(), qos=1)
+            # mqtt_client.publish("infra-banking", event.json(), qos=1)
+            elk_mqtt.publish_to_elk("infra-banking", event.json())
 
             deployment = "transaction-service"
             rollback_url = f"{base_url}/k8s/deployments/{deployment}/rollback"

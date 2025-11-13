@@ -1,6 +1,7 @@
 import random
 from datetime import datetime, timezone
-from app import mqtt_client
+# from app import mqtt_client
+from app import elk_mqtt
 from app.schemas import StandardKafkaEvent
 from app.utils.cities_data import cities
 
@@ -51,7 +52,8 @@ class ATMServices:
                                                account_balance_before=ATMState.get_balance(),
                                                account_balance_after=ATMState.get_balance())
 
-                    mqtt_client.publish("infra-banking", event.json(), qos=1)
+                    # mqtt_client.publish("infra-banking", event.json(), qos=1)
+                    elk_mqtt.publish_to_elk("infra-banking", event.json())
 
                     return {"status": "error", "message": "Saldo ATM tidak cukup"}
 
@@ -74,7 +76,8 @@ class ATMServices:
                                            transaction_type="cash_withdrawal",
                                            status="success")
 
-                mqtt_client.publish("infra-banking", event.json(), qos=1)
+                # mqtt_client.publish("infra-banking", event.json(), qos=1)
+                elk_mqtt.publish_to_elk("infra-banking", event.json())
 
                 if ATMState.is_low_balance():
                     notif = StandardKafkaEvent(timestamp=datetime.now(timezone.utc),
@@ -92,7 +95,8 @@ class ATMServices:
                                                total_amount=ATMState.TOTAL_BALANCE,
                                                failure_message="ATM balance below 30%")
 
-                    mqtt_client.publish("infra-banking", notif.json(), qos=1)
+                    # mqtt_client.publish("infra-banking", event.json(), qos=1)
+                    elk_mqtt.publish_to_elk("infra-banking", event.json())
 
                 return {
                     "status": "success",
@@ -108,7 +112,8 @@ class ATMServices:
                                                ip_address=request.client.host,
                                                user_agent=request.headers.get("user-agent"))
 
-                mqtt_client.publish("infra-banking", err_event.json(), qos=1)
+                # mqtt_client.publish("infra-banking", event.json(), qos=1)
+                elk_mqtt.publish_to_elk("infra-banking", event.json())
 
                 return {"status": "error", "message": str(e)}
 

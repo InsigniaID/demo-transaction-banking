@@ -6,7 +6,8 @@ from typing import Dict, Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from ..kafka_producer import send_transaction
+# from ..kafka_producer import send_transaction
+from ..elk_kafka import send_transaction
 from ..utils.cities_data import cities
 from ..utils.qris import encode_qris_payload, decode_qris_payload
 from ..schemas import GenerateQRISRequest, GenerateQRISResponse, ConsumeQRISRequest, ConsumeQRISResponse, \

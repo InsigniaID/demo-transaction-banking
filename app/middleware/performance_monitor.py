@@ -16,8 +16,8 @@ except ImportError:
     psutil = None
 
 from ..database import SessionLocal
-from ..kafka_producer import send_transaction
-
+# from ..kafka_producer import send_transaction
+from ..elk_kafka import send_transaction
 
 class PerformanceMonitor:
     def __init__(self):

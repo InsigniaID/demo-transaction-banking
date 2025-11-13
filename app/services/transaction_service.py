@@ -3,7 +3,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any
 
-from ..kafka_producer import send_transaction
+# from ..kafka_producer import send_transaction
+from ..elk_kafka import send_transaction
 from ..schemas import StandardKafkaEvent
 from ..utils.cities_data import cities
 
