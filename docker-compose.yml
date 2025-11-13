@@ -38,7 +38,7 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.monitoring.enabled=false
+      - xpack.monitoring.enabled=true
       - ELASTICSEARCH_HOST=http://aiops-elasticsearch:9200
       - ELASTICSEARCH_USERNAME=elastic
       - ELASTICSEARCH_PASSWORD=LodplW_EZCRBo1E+f0tl
@@ -56,8 +56,7 @@ services:
     container_name: aiops-kibana
     environment:
       - ELASTICSEARCH_HOSTS=http://aiops-elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=LodplW_EZCRBo1E+f0tl
+      - ELASTICSEARCH_SERVICE_TOKEN=AAEAAWVsYXN0aWMva2liYW5hL3Rva2VuX3BKQ2dmSm9CeHBHb2FVWi1mb2plOlp0dDRKZkhtVExxSTZrLXl0eEZYWkE
     ports:
       - "5601:5601"
     depends_on:
