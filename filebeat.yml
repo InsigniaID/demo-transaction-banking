@@ -4,6 +4,10 @@ filebeat.inputs:
     - /var/lib/docker/containers/19d033b4612df90f50dea70ea4ebc6f75ac5365dc428f7b26dc52fd08e75688c/19d033b4612df90f50dea70ea4ebc6f75ac5365dc428f7b26dc52fd08e75688c-json.log
   processors:
     - add_docker_metadata: ~
+    - drop_event:
+        when:
+          equals:
+            docker.container.name: "filebeat"
     - decode_json_fields:
         fields: ["message"]
         target: "json"
