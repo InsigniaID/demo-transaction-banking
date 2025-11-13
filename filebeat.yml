@@ -1,12 +1,14 @@
 filebeat.inputs:
-- type: container
-  paths:
-    - /var/lib/docker/containers/*/*.log
+- type: docker
+  containers.names:
+    - "demo-transaction-banking"
   processors:
     - add_docker_metadata: ~
     - decode_json_fields:
         fields: ["message"]
         target: "json"
+  multiline.pattern: '^\s'
+  multiline.match: after
 
 output.elasticsearch:
   hosts: ["http://109.123.234.206:9200"]
@@ -15,3 +17,7 @@ output.elasticsearch:
 
 setup.kibana:
   host: "http://109.123.234.206:5601"
+
+logging.level: debug
+logging.to_files: false
+logging.to_stdout: true
