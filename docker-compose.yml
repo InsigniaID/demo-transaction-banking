@@ -62,6 +62,8 @@ services:
     depends_on:
       - elasticsearch
     restart: unless-stopped
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     networks:
       - elk_net
 
