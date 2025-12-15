@@ -30,6 +30,11 @@ services:
     restart: unless-stopped
     networks:
       - elk_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "2"
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.15.3
@@ -50,6 +55,11 @@ services:
     restart: unless-stopped
     networks:
       - elk_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "30m"
+        max-file: "2"
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.15.3
@@ -67,6 +77,11 @@ services:
       - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
     networks:
       - elk_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
 
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.15.3
@@ -76,6 +91,11 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "2"
 
 volumes:
   es_data:
