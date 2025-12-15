@@ -19,7 +19,7 @@ filebeat.inputs:
 output.elasticsearch:
   hosts: ["http://109.123.234.206:9200"]
   username: "elastic"
-  password: "LodplW_EZCRBo1E+f0tl"
+  password: "OZWWe5PzWPTGTYu+kaeY"
 
 setup.kibana:
   host: "http://109.123.234.206:5601"
